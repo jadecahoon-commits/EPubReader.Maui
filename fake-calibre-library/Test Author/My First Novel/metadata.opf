@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <dc:title>My First Novel</dc:title>
+    <dc:description>A thrilling adventure about testing ebook readers.</dc:description>
+    <meta name="calibre:series_index" content="1"/>
+  </metadata>
+</package>

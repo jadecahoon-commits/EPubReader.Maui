@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="EPubReader.Maui.ReaderPage"
+             Title="Reader">
+
+    <Grid BackgroundColor="{AppThemeBinding Dark=#0f0f0f, Light=#f5f5f5}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Top bar -->
+        <Grid BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}"
+              Padding="20,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <VerticalStackLayout>
+                <Label x:Name="BookTitleText"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Dark=White, Light=Black}" />
+                <Label x:Name="BookAuthorText"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+                       Margin="0,2,0,0" />
+            </VerticalStackLayout>
+
+            <HorizontalStackLayout Grid.Column="1"
+                                   Spacing="8"
+                                   VerticalOptions="Center">
+
+                <!-- TOC button -->
+                <Button x:Name="TocButton"
+                        Text="☰"
+                        Clicked="TocButton_Click"
+                        BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+                        TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+                        WidthRequest="36" HeightRequest="36"
+                        CornerRadius="4"
+                        Padding="0" />
+
+                <Button x:Name="PrevPageButton"
+                        Text="◀"
+                        Clicked="PrevPage_Click"
+                        BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+                        TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+                        WidthRequest="36" HeightRequest="36"
+                        CornerRadius="4"
+                        Padding="0" />
+
+                <Label x:Name="PageIndexText"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+                       VerticalOptions="Center"
+                       MinimumWidthRequest="120"
+                       HorizontalTextAlignment="Center" />
+
+                <Button x:Name="NextPageButton"
+                        Text="▶"
+                        Clicked="NextPage_Click"
+                        BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+                        TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+                        WidthRequest="36" HeightRequest="36"
+                        CornerRadius="4"
+                        Padding="0" />
+            </HorizontalStackLayout>
+        </Grid>
+
+        <!-- Main content area -->
+        <Grid Grid.Row="1">
+
+            <!-- WebView for chapter content -->
+            <WebView x:Name="ContentWebView" />
+
+            <!-- Loading overlay -->
+            <Grid x:Name="LoadingOverlay"
+                  BackgroundColor="{AppThemeBinding Dark=#0f0f0f, Light=#f5f5f5}"
+                  IsVisible="True">
+                <VerticalStackLayout HorizontalOptions="Center"
+                                     VerticalOptions="Center"
+                                     Spacing="16">
+                    <ActivityIndicator IsRunning="True"
+                                       WidthRequest="48"
+                                       HeightRequest="48"
+                                       Color="#E50914" />
+                    <Label Text="Opening book..."
+                           FontSize="14"
+                           TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+                           HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- TOC overlay -->
+            <Grid x:Name="TocOverlay"
+                  IsVisible="False"
+                  BackgroundColor="#80000000">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="340" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Dismiss area -->
+                <Grid Grid.Column="1" BackgroundColor="Transparent">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="TocOverlay_Tapped" />
+                    </Grid.GestureRecognizers>
+                </Grid>
+
+                <!-- TOC panel -->
+                <Grid Grid.Column="0"
+                      BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- TOC header -->
+                    <Grid Padding="20,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Label Text="Table of Contents"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                               VerticalOptions="Center" />
+
+                        <Button Grid.Column="1"
+                                Text="✕"
+                                Clicked="TocClose_Click"
+                                BackgroundColor="Transparent"
+                                TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+                                WidthRequest="32" HeightRequest="32"
+                                CornerRadius="4"
+                                Padding="0" />
+                    </Grid>
+
+                    <!-- TOC list -->
+                    <CollectionView x:Name="TocListView"
+                                    Grid.Row="1"
+                                    SelectionMode="Single"
+                                    SelectionChanged="TocListView_SelectionChanged"
+                                    BackgroundColor="Transparent"
+                                    Margin="8">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="12,10" ColumnDefinitions="Auto,*">
+                                    <BoxView WidthRequest="{Binding IndentWidth}"
+                                             Color="Transparent" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding Title}"
+                                           FontSize="13"
+                                           TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                                           LineBreakMode="TailTruncation" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <!-- Status bar -->
+        <Grid Grid.Row="2"
+              BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}"
+              Padding="20,8">
+            <Label x:Name="StatusText"
+                   FontSize="11"
+                   TextColor="{AppThemeBinding Dark=#888888, Light=#999999}" />
+        </Grid>
+    </Grid>
+</ContentPage>
