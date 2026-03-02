@@ -348,6 +348,20 @@ public partial class MainPage : ContentPage
             tapGesture.Tapped += BookCard_DoubleTapped;
             card.GestureRecognizers.Add(tapGesture);
 
+            // Drag to assign fandom
+            var dragGesture = new DragGestureRecognizer();
+            dragGesture.DragStarting += (s, args) =>
+            {
+                if (card.BindingContext is BookItem book)
+                {
+                    args.Data.Properties["BookItem"] = book;
+                    args.Data.Text = book.Title;
+                }
+            };
+            card.GestureRecognizers.Add(dragGesture);
+
+            return card;
+
             return card;
         });
     }
@@ -468,8 +482,15 @@ public partial class MainPage : ContentPage
             _selectedBook.Category = category;
             LibraryData.SetCategory(_selectedBook.FilePath, category);
 
+            // Remember the selected book before rebuild clears it
+            var savedBook = _selectedBook;
+
             if (!string.IsNullOrEmpty(_selectedFandom))
                 RebuildCategorySections(_selectedFandom);
+
+            // Restore selection state so the description panel stays visible
+            _selectedBook = savedBook;
+            DescriptionPanel.IsVisible = true;
         }
         catch (Exception ex)
         {
@@ -494,4 +515,82 @@ public partial class MainPage : ContentPage
         }
         catch (Exception ex) { Debug.WriteLine($"Error showing error dialog: {ex}"); }
     }
+
+    // ── Drag & drop: assign book to fandom ────────────────────────────────────
+
+    // ── Drag & drop: assign book to fandom ────────────────────────────────────
+
+    private void Fandom_DragOver(object? sender, DragEventArgs e)
+    {
+        e.AcceptedOperation = DataPackageOperation.Copy;
+
+        // Highlight the fandom border in red
+        if (sender is GestureRecognizer recognizer &&
+            recognizer.Parent is Border border)
+        {
+            border.Stroke = Color.FromArgb("#E50914");
+            border.StrokeThickness = 2;
+        }
+    }
+
+    private void Fandom_DragLeave(object? sender, DragEventArgs e)
+    {
+        // Revert to default border
+        if (sender is GestureRecognizer recognizer &&
+            recognizer.Parent is Border border)
+        {
+            ResetFandomBorder(border);
+        }
+    }
+
+    private void Fandom_Drop(object? sender, DropEventArgs e)
+    {
+        try
+        {
+            // Revert highlight on the drop target
+            if (sender is GestureRecognizer recognizer &&
+                recognizer.Parent is Border border)
+            {
+                ResetFandomBorder(border);
+            }
+
+            if (e.Data?.Properties == null) return;
+            if (!e.Data.Properties.ContainsKey("BookItem")) return;
+            if (e.Data.Properties["BookItem"] is not BookItem book) return;
+
+            // Resolve which fandom was dropped on
+            string? targetFandom = null;
+            if (sender is Element element)
+            {
+                targetFandom = element.BindingContext as string;
+            }
+
+            if (string.IsNullOrEmpty(targetFandom)) return;
+
+            // Assign the fandom
+            var fandomValue = targetFandom == Unsorted ? "" : targetFandom;
+            book.Fandom = fandomValue;
+            LibraryData.SetFandom(book.FilePath, fandomValue);
+
+            // Refresh the UI
+            LoadFandoms();
+            if (!string.IsNullOrEmpty(_selectedFandom))
+                RebuildCategorySections(_selectedFandom);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error handling fandom drop: {ex}");
+        }
+    }
+
+    private static void ResetFandomBorder(Border border)
+    {
+        border.StrokeThickness = 1;
+        // Restore the theme-appropriate default stroke
+        border.SetAppThemeColor(Border.StrokeProperty,
+            Color.FromArgb("#e0e0e0"),   // Light
+            Color.FromArgb("#3a3a3a"));  // Dark
+    }
+
+   
 }
