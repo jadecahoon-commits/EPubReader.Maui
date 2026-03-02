@@ -7,6 +7,7 @@ public partial class MainPage : ContentPage
     private List<BookItem> _books = new();
     private string _selectedFandom = "";
     private BookItem? _selectedBook = null;
+    private Border? _lastSelectedCard = null;
 
     private const string Unsorted = "Unsorted";
     private const string Uncategorized = "Uncategorized";
@@ -155,6 +156,7 @@ public partial class MainPage : ContentPage
     private void RebuildCategorySections(string fandom)
     {
         _selectedBook = null;
+        _lastSelectedCard = null;
         DescriptionPanel.IsVisible = false;
 
         var fandomBooks = _books.Where(b =>
@@ -223,7 +225,7 @@ public partial class MainPage : ContentPage
 
             section.Children.Add(headerStack);
 
-            // Horizontal book strip
+            // Horizontal book strip — extra height to allow for scale-up without clipping
             var bookScroll = new ScrollView
             {
                 Orientation = ScrollOrientation.Horizontal
@@ -232,8 +234,8 @@ public partial class MainPage : ContentPage
             var bookCollection = new CollectionView
             {
                 SelectionMode = SelectionMode.Single,
-                ItemsLayout = new LinearItemsLayout(ItemsLayoutOrientation.Horizontal) { ItemSpacing = 12 },
-                HeightRequest = 290,
+                ItemsLayout = new LinearItemsLayout(ItemsLayoutOrientation.Horizontal) { ItemSpacing = 16 },
+                HeightRequest = 330,
                 ItemTemplate = CreateBookCardTemplate()
             };
             bookCollection.SetBinding(ItemsView.ItemsSourceProperty, "Books");
@@ -255,11 +257,16 @@ public partial class MainPage : ContentPage
                 WidthRequest = 180,
                 HeightRequest = 270,
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
-                StrokeThickness = 1
+                StrokeThickness = 1,
+                // Ensure the card scales from center
+                AnchorX = 0.5,
+                AnchorY = 0.5,
+                // Add margin so the scaled card doesn't clip against neighbours
+                Margin = new Thickness(4, 20, 4, 20)
             };
             card.SetAppThemeColor(Border.StrokeProperty, Color.FromArgb("#e0e0e0"), Color.FromArgb("#3a3a3a"));
 
-            var grid = new Grid();
+            var grid = new Grid { InputTransparent = true };
 
             // Cover image
             var coverImage = new Image
@@ -341,14 +348,29 @@ public partial class MainPage : ContentPage
             overlay.Children.Add(overlayStack);
             grid.Children.Add(overlay);
 
-            card.Content = grid;
+            // Drag handle — sits on top, only this element captures drag
+            // InputTransparent = false so it receives touch, but it's transparent visually
+            var dragHandle = new Grid
+            {
+                InputTransparent = false,
+                BackgroundColor = Colors.Transparent,
+                HorizontalOptions = LayoutOptions.Fill,
+                VerticalOptions = LayoutOptions.Fill,
+                // Show a subtle drag icon in the top-right corner
+            };
 
-            // Double-tap to open
-            var tapGesture = new TapGestureRecognizer { NumberOfTapsRequired = 2 };
-            tapGesture.Tapped += BookCard_DoubleTapped;
-            card.GestureRecognizers.Add(tapGesture);
+            var dragIcon = new Label
+            {
+                Text = "⠿",
+                FontSize = 16,
+                HorizontalOptions = LayoutOptions.End,
+                VerticalOptions = LayoutOptions.Start,
+                Margin = new Thickness(0, 6, 8, 0),
+                Opacity = 0.4
+            };
+            dragIcon.SetAppThemeColor(Label.TextColorProperty, Color.FromArgb("#555555"), Color.FromArgb("#bbbbbb"));
+            dragHandle.Children.Add(dragIcon);
 
-            // Drag to assign fandom
             var dragGesture = new DragGestureRecognizer();
             dragGesture.DragStarting += (s, args) =>
             {
@@ -358,9 +380,27 @@ public partial class MainPage : ContentPage
                     args.Data.Text = book.Title;
                 }
             };
-            card.GestureRecognizers.Add(dragGesture);
+            dragHandle.GestureRecognizers.Add(dragGesture);
 
-            return card;
+            // Also make the drag handle select the card when tapped (not just dragged)
+            var dragTap = new TapGestureRecognizer();
+            dragTap.Tapped += (s, args) =>
+            {
+                // Find the parent CollectionView and set its selected item
+                if (card.BindingContext is BookItem book)
+                {
+                    var parent = card.Parent;
+                    while (parent != null && parent is not CollectionView)
+                        parent = parent.Parent;
+                    if (parent is CollectionView cv)
+                        cv.SelectedItem = book;
+                }
+            };
+            dragHandle.GestureRecognizers.Add(dragTap);
+
+            grid.Children.Add(dragHandle);
+
+            card.Content = grid;
 
             return card;
         });
@@ -413,16 +453,40 @@ public partial class MainPage : ContentPage
         }
     }
 
-    // ── Book selection ────────────────────────────────────────────────────────
+    // ── Book selection & Netflix-style animation ──────────────────────────────
 
     private void BookCollection_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         try
         {
+            // Animate previous card back to normal
+            if (_lastSelectedCard != null)
+            {
+                _lastSelectedCard.ScaleTo(1.0, 200, Easing.CubicOut);
+                _lastSelectedCard.StrokeThickness = 1;
+                _lastSelectedCard.SetAppThemeColor(Border.StrokeProperty,
+                    Color.FromArgb("#e0e0e0"), Color.FromArgb("#3a3a3a"));
+                _lastSelectedCard = null;
+            }
+
             if (e.CurrentSelection.FirstOrDefault() is not BookItem book) return;
 
             _selectedBook = book;
 
+            // Find the visual Border for the selected item by walking the CollectionView
+            if (sender is CollectionView cv)
+            {
+                var card = FindCardForItem(cv, book);
+                if (card != null)
+                {
+                    card.ScaleTo(1.2, 250, Easing.CubicOut);
+                    card.Stroke = Color.FromArgb("#E50914");
+                    card.StrokeThickness = 2;
+                    _lastSelectedCard = card;
+                }
+            }
+
+            // Update description panel
             SelectedBookTitle.Text = book.Title;
             SelectedBookAuthor.Text = $"by {book.Author}";
             SelectedBookType.Text = book.FileType.ToUpperInvariant();
@@ -440,9 +504,44 @@ public partial class MainPage : ContentPage
         }
     }
 
-    // ── Open book ─────────────────────────────────────────────────────────────
+    /// <summary>
+    /// Walk the visual tree under a CollectionView to find the Border whose
+    /// BindingContext matches the given BookItem.
+    /// </summary>
+    private static Border? FindCardForItem(VisualElement parent, BookItem target)
+    {
+        if (parent is Border border && border.BindingContext == target)
+            return border;
 
-    private async void BookCard_DoubleTapped(object? sender, TappedEventArgs e)
+        foreach (var child in GetVisualChildren(parent))
+        {
+            var result = FindCardForItem(child, target);
+            if (result != null) return result;
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<VisualElement> GetVisualChildren(VisualElement parent)
+    {
+        if (parent is IVisualTreeElement treeElement)
+        {
+            foreach (var child in treeElement.GetVisualChildren())
+            {
+                if (child is VisualElement ve)
+                    yield return ve;
+            }
+        }
+    }
+
+    // ── Open book (double-tap on description panel or via Open button) ────────
+
+    private async void OpenBook_Click(object? sender, EventArgs e)
+    {
+        await OpenSelectedBookAsync();
+    }
+
+    private async Task OpenSelectedBookAsync()
     {
         try
         {
@@ -451,12 +550,10 @@ public partial class MainPage : ContentPage
             var ext = Path.GetExtension(_selectedBook.FilePath).ToLowerInvariant();
             if (ext == ".epub")
             {
-                // TODO: Navigate to ReaderPage
                 await Navigation.PushAsync(new ReaderPage(_selectedBook, _scanner));
             }
             else
             {
-                // Open with system default app
                 await Launcher.OpenAsync(new OpenFileRequest
                 {
                     File = new ReadOnlyFile(_selectedBook.FilePath)
@@ -518,13 +615,10 @@ public partial class MainPage : ContentPage
 
     // ── Drag & drop: assign book to fandom ────────────────────────────────────
 
-    // ── Drag & drop: assign book to fandom ────────────────────────────────────
-
     private void Fandom_DragOver(object? sender, DragEventArgs e)
     {
         e.AcceptedOperation = DataPackageOperation.Copy;
 
-        // Highlight the fandom border in red
         if (sender is GestureRecognizer recognizer &&
             recognizer.Parent is Border border)
         {
@@ -535,7 +629,6 @@ public partial class MainPage : ContentPage
 
     private void Fandom_DragLeave(object? sender, DragEventArgs e)
     {
-        // Revert to default border
         if (sender is GestureRecognizer recognizer &&
             recognizer.Parent is Border border)
         {
@@ -547,7 +640,6 @@ public partial class MainPage : ContentPage
     {
         try
         {
-            // Revert highlight on the drop target
             if (sender is GestureRecognizer recognizer &&
                 recognizer.Parent is Border border)
             {
@@ -558,7 +650,6 @@ public partial class MainPage : ContentPage
             if (!e.Data.Properties.ContainsKey("BookItem")) return;
             if (e.Data.Properties["BookItem"] is not BookItem book) return;
 
-            // Resolve which fandom was dropped on
             string? targetFandom = null;
             if (sender is Element element)
             {
@@ -567,12 +658,10 @@ public partial class MainPage : ContentPage
 
             if (string.IsNullOrEmpty(targetFandom)) return;
 
-            // Assign the fandom
             var fandomValue = targetFandom == Unsorted ? "" : targetFandom;
             book.Fandom = fandomValue;
             LibraryData.SetFandom(book.FilePath, fandomValue);
 
-            // Refresh the UI
             LoadFandoms();
             if (!string.IsNullOrEmpty(_selectedFandom))
                 RebuildCategorySections(_selectedFandom);
@@ -586,11 +675,8 @@ public partial class MainPage : ContentPage
     private static void ResetFandomBorder(Border border)
     {
         border.StrokeThickness = 1;
-        // Restore the theme-appropriate default stroke
         border.SetAppThemeColor(Border.StrokeProperty,
-            Color.FromArgb("#e0e0e0"),   // Light
-            Color.FromArgb("#3a3a3a"));  // Dark
+            Color.FromArgb("#e0e0e0"),
+            Color.FromArgb("#3a3a3a"));
     }
-
-   
 }

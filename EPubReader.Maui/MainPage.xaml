@@ -25,8 +25,6 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
-                <!-- add this -->
-
             </Grid.RowDefinitions>
 
             <Label Text="Fandoms"
@@ -49,13 +47,13 @@
                                 StrokeShape="RoundRectangle 6"
                                 Padding="10"
                                 Margin="0,2">
-                                                <Border.GestureRecognizers>
-                                                <DropGestureRecognizer AllowDrop="True"
-                                                   DragOver="Fandom_DragOver"
-                                                   DragLeave="Fandom_DragLeave"
-                                                   Drop="Fandom_Drop" />
+                            <Border.GestureRecognizers>
+                                <DropGestureRecognizer AllowDrop="True"
+                                                       DragOver="Fandom_DragOver"
+                                                       DragLeave="Fandom_DragLeave"
+                                                       Drop="Fandom_Drop" />
                             </Border.GestureRecognizers>
-                                                <Label Text="{Binding .}"
+                            <Label Text="{Binding .}"
                                    FontSize="14"
                                    FontAttributes="Bold"
                                    TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
@@ -171,6 +169,17 @@
                                    TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
                                    CharacterSpacing="3" />
                         </Border>
+
+                        <!-- Open button -->
+                        <Button Text="▶  Open"
+                                Clicked="OpenBook_Click"
+                                BackgroundColor="#E50914"
+                                TextColor="White"
+                                CornerRadius="4"
+                                Padding="12,4"
+                                FontSize="12"
+                                HeightRequest="30"
+                                VerticalOptions="Center" />
                     </HorizontalStackLayout>
 
                     <Label Grid.Row="1"
