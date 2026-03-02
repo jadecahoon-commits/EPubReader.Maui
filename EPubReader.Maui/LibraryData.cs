@@ -9,18 +9,41 @@ namespace EPubReader.Maui;
 
 public static class LibraryData
 {
-    private static readonly string DataFile = Path.Combine(
+    // ── Bootstrap file (local only, never synced) ─────────────────────────────
+    // Stores just the two paths so we know where to find everything else.
+
+    private static readonly string BootstrapFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "EPubReader",
-        "library-data.json"
+        "bootstrap.json"
     );
+
+    private class BootstrapRoot
+    {
+        public string LibraryPath { get; set; } = "";
+        public string SaveDataPath { get; set; } = "";
+    }
+
+    // ── Cloud save file (lives at user-chosen SaveDataPath) ───────────────────
+
+    private class DataRoot
+    {
+        public Dictionary<string, string> Fandoms { get; set; } = new();
+        public Dictionary<string, string> Categories { get; set; } = new();
+        public List<string> StandaloneFandoms { get; set; } = new();
+        public Dictionary<string, ReadingPosition> Positions { get; set; } = new();
+        public string Theme { get; set; } = "Dark";
+    }
+
+    // ── In-memory state ───────────────────────────────────────────────────────
 
     private static Dictionary<string, string> _fandoms = new();
     private static Dictionary<string, string> _categories = new();
     private static HashSet<string> _standaloneFandoms = new(StringComparer.OrdinalIgnoreCase);
     private static Dictionary<string, ReadingPosition> _positions = new();
-    private static string _theme = "Dark"; 
+    private static string _theme = "Dark";
     private static string _libraryPath = "";
+    private static string _saveDataPath = "";
 
     public class ReadingPosition
     {
@@ -28,7 +51,137 @@ public static class LibraryData
         public int Page { get; set; } = 0;
     }
 
-    private class DataRoot
+    // ── Public properties ─────────────────────────────────────────────────────
+
+    public static string Theme
+    {
+        get => _theme;
+        set { _theme = value; SaveData(); }
+    }
+
+    public static string LibraryPath
+    {
+        get => _libraryPath;
+        set { _libraryPath = value; SaveBootstrap(); }
+    }
+
+    public static string SaveDataPath
+    {
+        get => _saveDataPath;
+        set
+        {
+            _saveDataPath = value;
+            SaveBootstrap();
+            // Immediately write current state to the new location
+            SaveData();
+        }
+    }
+
+    // ── Load ──────────────────────────────────────────────────────────────────
+
+    public static void Load()
+    {
+        LoadBootstrap();
+        LoadData();
+    }
+
+    private static void LoadBootstrap()
+    {
+        try
+        {
+            if (!File.Exists(BootstrapFile)) return;
+
+            var json = File.ReadAllText(BootstrapFile);
+            var root = JsonSerializer.Deserialize<BootstrapRoot>(json);
+            if (root == null) return;
+
+            _libraryPath = root.LibraryPath ?? "";
+            _saveDataPath = root.SaveDataPath ?? "";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error loading bootstrap: {ex}");
+        }
+    }
+
+    private static void LoadData()
+    {
+        var dataFile = GetDataFilePath();
+        if (dataFile == null || !File.Exists(dataFile))
+        {
+            // No cloud save file yet — attempt to migrate legacy file
+            TryMigrateLegacy();
+            return;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(dataFile);
+            var root = JsonSerializer.Deserialize<DataRoot>(json);
+            if (root == null) return;
+
+            _fandoms = root.Fandoms ?? new();
+            _categories = root.Categories ?? new();
+            _standaloneFandoms = new HashSet<string>(
+                root.StandaloneFandoms ?? new List<string>(),
+                StringComparer.OrdinalIgnoreCase);
+            _positions = root.Positions ?? new();
+            _theme = root.Theme ?? "Dark";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error loading save data: {ex}");
+            ResetData();
+        }
+    }
+
+    /// <summary>
+    /// Migrate from the old all-in-one library-data.json if it exists,
+    /// so existing users don't lose their data.
+    /// </summary>
+    private static void TryMigrateLegacy()
+    {
+        var legacyFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "EPubReader",
+            "library-data.json"
+        );
+
+        if (!File.Exists(legacyFile)) return;
+
+        try
+        {
+            var json = File.ReadAllText(legacyFile);
+
+            // Legacy DataRoot included LibraryPath and Theme
+            var legacyRoot = JsonSerializer.Deserialize<LegacyDataRoot>(json);
+            if (legacyRoot == null) return;
+
+            _fandoms = legacyRoot.Fandoms ?? new();
+            _categories = legacyRoot.Categories ?? new();
+            _standaloneFandoms = new HashSet<string>(
+                legacyRoot.StandaloneFandoms ?? new List<string>(),
+                StringComparer.OrdinalIgnoreCase);
+            _positions = legacyRoot.Positions ?? new();
+            _theme = legacyRoot.Theme ?? "Dark";
+
+            // Preserve library path from legacy file if not already set
+            if (string.IsNullOrEmpty(_libraryPath) && !string.IsNullOrEmpty(legacyRoot.LibraryPath))
+                _libraryPath = legacyRoot.LibraryPath;
+
+            Debug.WriteLine("Migrated legacy library-data.json");
+
+            // Write to new locations
+            SaveBootstrap();
+            SaveData();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error migrating legacy data: {ex}");
+        }
+    }
+
+    private class LegacyDataRoot
     {
         public Dictionary<string, string> Fandoms { get; set; } = new();
         public Dictionary<string, string> Categories { get; set; } = new();
@@ -38,73 +191,42 @@ public static class LibraryData
         public string LibraryPath { get; set; } = "";
     }
 
-    public static string Theme
-    {
-        get => _theme;
-        set { _theme = value; Save(); }
-    }
+    // ── Save ──────────────────────────────────────────────────────────────────
 
-    public static string LibraryPath
-    {
-        get => _libraryPath;
-        set { _libraryPath = value; Save(); }
-    }
-
-    public static void Load()
+    private static void SaveBootstrap()
     {
         try
         {
-            if (!File.Exists(DataFile)) return;
+            var dir = Path.GetDirectoryName(BootstrapFile)!;
+            Directory.CreateDirectory(dir);
 
-            var json = File.ReadAllText(DataFile);
-
-            try
+            var root = new BootstrapRoot
             {
-                var root = JsonSerializer.Deserialize<DataRoot>(json);
-                if (root != null)
-                {
-                    _fandoms = root.Fandoms ?? new();
-                    _categories = root.Categories ?? new();
-                    _standaloneFandoms = new HashSet<string>(
-                        root.StandaloneFandoms ?? new List<string>(),
-                        StringComparer.OrdinalIgnoreCase);
-                    _positions = root.Positions ?? new();
-                    _theme = root.Theme ?? "Dark"; 
-                    _libraryPath = root.LibraryPath ?? "";
+                LibraryPath = _libraryPath,
+                SaveDataPath = _saveDataPath
+            };
 
-                    return;
-                }
-            }
-            catch { /* fall through to legacy format */ }
-
-            // Legacy: plain dictionary (fandoms only)
-            _fandoms = JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new();
-            _categories = new();
-            _standaloneFandoms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            _positions = new();
-            _theme = "Dark";
-            _libraryPath = "";
-
-
+            var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(BootstrapFile, json);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error loading library data: {ex}");
-            _fandoms = new();
-            _categories = new();
-            _standaloneFandoms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            _positions = new();
-            _theme = "Dark";
-            _libraryPath = "";
-
+            Debug.WriteLine($"Error saving bootstrap: {ex}");
         }
     }
 
-    public static void Save()
+    private static void SaveData()
     {
+        var dataFile = GetDataFilePath();
+        if (dataFile == null)
+        {
+            Debug.WriteLine("SaveData skipped: no SaveDataPath configured.");
+            return;
+        }
+
         try
         {
-            var dir = Path.GetDirectoryName(DataFile)!;
+            var dir = Path.GetDirectoryName(dataFile)!;
             Directory.CreateDirectory(dir);
 
             var root = new DataRoot
@@ -113,18 +235,59 @@ public static class LibraryData
                 Categories = _categories,
                 StandaloneFandoms = _standaloneFandoms.OrderBy(f => f).ToList(),
                 Positions = _positions,
-                Theme = _theme,
-                LibraryPath = _libraryPath
-
+                Theme = _theme
             };
 
             var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(DataFile, json);
+            File.WriteAllText(dataFile, json);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error saving library data: {ex}");
+            Debug.WriteLine($"Error saving data: {ex}");
         }
+    }
+
+    /// <summary>
+    /// Returns the full path to library-data.json, or null if SaveDataPath is not set.
+    /// Falls back to LocalApplicationData if SaveDataPath is empty, so the app
+    /// works out of the box before the user configures a sync folder.
+    /// </summary>
+    private static string? GetDataFilePath()
+    {
+        if (!string.IsNullOrEmpty(_saveDataPath))
+        {
+            // On Android the path may be a content:// URI — we can't write a plain
+            // file there, so fall back to local storage in that case.
+            if (_saveDataPath.StartsWith("content://"))
+                return GetLocalFallbackDataFile();
+
+            return Path.Combine(_saveDataPath, "library-data.json");
+        }
+
+        // No sync folder chosen yet — use local fallback so app works immediately.
+        return GetLocalFallbackDataFile();
+    }
+
+    private static string GetLocalFallbackDataFile() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "EPubReader",
+            "library-data.json"
+        );
+
+    // ── Public save method (called by anything that mutates data) ─────────────
+
+    public static void Save() => SaveData();
+
+    // ── Reset helpers ─────────────────────────────────────────────────────────
+
+    private static void ResetData()
+    {
+        _fandoms = new();
+        _categories = new();
+        _standaloneFandoms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        _positions = new();
+        _theme = "Dark";
     }
 
     // ── Fandoms ───────────────────────────────────────────────────────────────
@@ -137,14 +300,14 @@ public static class LibraryData
 
     public static void SetFandom(string filePath, string fandom)
     {
-        try { _fandoms[filePath] = fandom; Save(); }
+        try { _fandoms[filePath] = fandom; SaveData(); }
         catch (Exception ex) { Debug.WriteLine($"Error setting fandom: {ex}"); }
     }
 
     public static void AddStandaloneFandom(string fandom)
     {
         if (string.IsNullOrWhiteSpace(fandom)) return;
-        try { _standaloneFandoms.Add(fandom.Trim()); Save(); }
+        try { _standaloneFandoms.Add(fandom.Trim()); SaveData(); }
         catch (Exception ex) { Debug.WriteLine($"Error adding standalone fandom: {ex}"); }
     }
 
@@ -172,7 +335,7 @@ public static class LibraryData
 
     public static void SetCategory(string filePath, string category)
     {
-        try { _categories[filePath] = category; Save(); }
+        try { _categories[filePath] = category; SaveData(); }
         catch (Exception ex) { Debug.WriteLine($"Error setting category: {ex}"); }
     }
 
@@ -202,7 +365,7 @@ public static class LibraryData
         try
         {
             _positions[filePath] = new ReadingPosition { Chapter = chapter, Page = page };
-            Save();
+            SaveData();
         }
         catch (Exception ex) { Debug.WriteLine($"Error setting position: {ex}"); }
     }

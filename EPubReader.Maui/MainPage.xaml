@@ -39,14 +39,17 @@
                             SelectionMode="Single"
                             SelectionChanged="FandomList_SelectionChanged"
                             BackgroundColor="Transparent">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="6" />
+                </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="x:String">
                         <Border BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#ffffff}"
-                                Stroke="{AppThemeBinding Dark=#3a3a3a, Light=#e0e0e0}"
-                                StrokeThickness="1"
-                                StrokeShape="RoundRectangle 6"
-                                Padding="10"
-                                Margin="0,2">
+                            Stroke="{AppThemeBinding Dark=#3a3a3a, Light=#e0e0e0}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 6"
+                            Padding="10"
+                            Margin="10">
                             <Border.GestureRecognizers>
                                 <DropGestureRecognizer AllowDrop="True"
                                                        DragOver="Fandom_DragOver"
