@@ -30,6 +30,31 @@ public class GoogleAuthService
     private const string KeyRefreshToken = "gdrive_refresh_token";
     private const string KeyUserEmail = "gdrive_user_email";
 
+    private const string KeyLibraryFolderId = "gdrive_library_folder_id";
+    private const string KeyLibraryFolderName = "gdrive_library_folder_name";
+
+    private string? _libraryFolderId;
+    private string? _libraryFolderName;
+
+    public string? LibraryFolderId => _libraryFolderId;
+    public string? LibraryFolderName => _libraryFolderName;
+
+    public async Task SetLibraryFolderAsync(string folderId, string folderName)
+    {
+        _libraryFolderId = folderId;
+        _libraryFolderName = folderName;
+        await SecureStorage.Default.SetAsync(KeyLibraryFolderId, folderId);
+        await SecureStorage.Default.SetAsync(KeyLibraryFolderName, folderName);
+    }
+
+    public void ClearLibraryFolder()
+    {
+        _libraryFolderId = null;
+        _libraryFolderName = null;
+        SecureStorage.Default.Remove(KeyLibraryFolderId);
+        SecureStorage.Default.Remove(KeyLibraryFolderName);
+    }
+
     // ── Singleton ─────────────────────────────────────────────────────────────
 
     public static readonly GoogleAuthService Instance = new();
@@ -53,6 +78,8 @@ public class GoogleAuthService
             _accessToken = await SecureStorage.Default.GetAsync(KeyAccessToken);
             _refreshToken = await SecureStorage.Default.GetAsync(KeyRefreshToken);
             _userEmail = await SecureStorage.Default.GetAsync(KeyUserEmail);
+            _libraryFolderId = await SecureStorage.Default.GetAsync(KeyLibraryFolderId);
+            _libraryFolderName = await SecureStorage.Default.GetAsync(KeyLibraryFolderName);
         }
         catch (Exception ex)
         {
@@ -227,6 +254,40 @@ public class GoogleAuthService
             Debug.WriteLine($"DownloadLibraryData: {ex.Message}");
             return false;
         }
+    }
+
+    // ── Drive folder browsing ─────────────────────────────────────────────────
+
+    public record DriveFolderItem(string Id, string Name);
+
+    /// <summary>Lists subfolders of a given parent folder ID ("root" for My Drive root).</summary>
+    public async Task<List<DriveFolderItem>> ListFoldersAsync(string parentId = "root")
+    {
+        if (!await EnsureValidTokenAsync()) return [];
+
+        var service = BuildDriveService();
+        var request = service.Files.List();
+        request.Q = $"'{parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+        request.Fields = "files(id, name)";
+        request.OrderBy = "name";
+        request.PageSize = 100;
+
+        var result = await request.ExecuteAsync();
+        return result.Files
+            .Select(f => new DriveFolderItem(f.Id, f.Name))
+            .ToList();
+    }
+
+    /// <summary>Gets the name of a folder by ID (used to display breadcrumb).</summary>
+    public async Task<string?> GetFolderNameAsync(string folderId)
+    {
+        if (!await EnsureValidTokenAsync()) return null;
+
+        var service = BuildDriveService();
+        var request = service.Files.Get(folderId);
+        request.Fields = "name";
+        var file = await request.ExecuteAsync();
+        return file.Name;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

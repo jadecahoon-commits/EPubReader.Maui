@@ -179,12 +179,7 @@ public partial class SettingsPage : ContentPage
 #endif
 
     // ── Google Drive ──────────────────────────────────────────────────────────
-#if ANDROID
-    private async Task InitGoogleDriveAsync()
-    {
-        await GoogleAuthService.Instance.InitAsync();
-        UpdateGoogleDriveUI();
-    }
+
 
     private void UpdateGoogleDriveUI()
     {
@@ -201,6 +196,25 @@ public partial class SettingsPage : ContentPage
 
         GoogleDriveActionsGrid.IsVisible = isSignedIn;
         GoogleDriveActionStatus.IsVisible = false;
+
+        GoogleDriveLibraryLabel.Text = GoogleAuthService.Instance.LibraryFolderName is { } name
+        ? $"Library: {name}"
+        : "No library folder selected";
+
+
+    }
+
+
+    private async void GoogleDrivePickFolder_Click(object sender, EventArgs e)
+    {
+        var picker = new DriveFolderPickerPage();
+        picker.Disappearing += (_, _) => UpdateGoogleDriveUI(); // refresh label after picking
+        await Navigation.PushModalAsync(picker);
+    }
+    private async Task InitGoogleDriveAsync()
+    {
+        await GoogleAuthService.Instance.InitAsync();
+        UpdateGoogleDriveUI();
     }
 
     private async void GoogleDrive_Click(object? sender, EventArgs e)
@@ -304,7 +318,6 @@ public partial class SettingsPage : ContentPage
             }
         });
     }
-#endif
 
     private async Task RunDriveActionAsync(Func<Task> action)
     {
@@ -332,6 +345,7 @@ public partial class SettingsPage : ContentPage
         GoogleDriveActionStatus.IsVisible = true;
         GoogleDriveActionStatus.Text = message;
     }
+
 
     /// <summary>
     /// Returns the path to library-data.json, mirroring LibraryData's internal logic.

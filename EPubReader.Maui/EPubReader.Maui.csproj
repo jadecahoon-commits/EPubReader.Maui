@@ -68,4 +68,10 @@
 		<PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <MauiXaml Update="DriveFolderPickerPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	</ItemGroup>
+
 </Project>

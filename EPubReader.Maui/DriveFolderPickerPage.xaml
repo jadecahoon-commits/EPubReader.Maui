@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="EPubReader.Maui.DriveFolderPickerPage"
+             Title="Select Calibre Library Folder"
+             BackgroundColor="{AppThemeBinding Dark=#111111, Light=#ffffff}">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="16">
+
+        <!-- Breadcrumb -->
+        <Label x:Name="BreadcrumbLabel"
+               Grid.Row="0"
+               FontSize="12"
+               TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+               Margin="0,0,0,8"
+               LineBreakMode="TailTruncation" />
+
+        <!-- Loading indicator -->
+        <ActivityIndicator x:Name="LoadingIndicator"
+                           Grid.Row="1"
+                           IsRunning="False"
+                           IsVisible="False"
+                           Color="#E50914"
+                           HorizontalOptions="Center"
+                           Margin="0,0,0,8" />
+
+        <!-- Folder list -->
+        <CollectionView x:Name="FolderList"
+                        Grid.Row="2"
+                        SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="0,6" ColumnDefinitions="Auto,*,Auto">
+                        <Label Grid.Column="0" Text="📁" FontSize="18" VerticalOptions="Center" Margin="0,0,10,0" />
+                        <Label Grid.Column="1"
+                               Text="{Binding Name}"
+                               FontSize="15"
+                               TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                               VerticalOptions="Center" />
+                        <Label Grid.Column="2" Text="›"
+                               FontSize="18"
+                               TextColor="{AppThemeBinding Dark=#666666, Light=#aaaaaa}"
+                               VerticalOptions="Center" />
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnFolderTapped" CommandParameter="{Binding}" />
+                        </Grid.GestureRecognizers>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Select current / Back -->
+        <Grid Grid.Row="3" ColumnDefinitions="Auto,*" Margin="0,12,0,0" ColumnSpacing="10">
+            <Button Grid.Column="0"
+                    x:Name="BackButton"
+                    Text="← Back"
+                    Clicked="OnBackClicked"
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Dark=#aaaaaa, Light=#555555}"
+                    BorderColor="{AppThemeBinding Dark=#444444, Light=#cccccc}"
+                    BorderWidth="1"
+                    CornerRadius="4"
+                    Padding="14,8" />
+            <Button Grid.Column="1"
+                    x:Name="SelectButton"
+                    Text="Select This Folder"
+                    Clicked="OnSelectClicked"
+                    BackgroundColor="#E50914"
+                    TextColor="White"
+                    CornerRadius="4"
+                    Padding="14,8" />
+        </Grid>
+    </Grid>
+</ContentPage>
