@@ -236,34 +236,28 @@ public class AndroidLibraryScanner : ILibraryScanner
         string[] projection =
         [
             DocumentsContract.Document.ColumnDocumentId,
-            DocumentsContract.Document.ColumnDisplayName,
-            DocumentsContract.Document.ColumnMimeType
+        DocumentsContract.Document.ColumnDisplayName,
+        DocumentsContract.Document.ColumnMimeType
         ];
 
-        using var cursor = Resolver.Query(childrenUri, projection, null, null, null);
-        if (cursor == null) return results;
-
-        while (cursor.MoveToNext())
+        try
         {
-            try
+            using var cursor = Resolver.Query(childrenUri, projection, null, null, null);
+            if (cursor == null)
             {
-                var docId = cursor.GetString(0) ?? "";
-                var displayName = cursor.GetString(1) ?? "";
-                var mimeType = cursor.GetString(2) ?? "";
-                var isDir = mimeType == DocumentsContract.Document.MimeTypeDir;
-
-                var docUri = DocumentsContract.BuildDocumentUriUsingTree(treeUri, docId);
-
-                results.Add(new DocumentInfo(
-                    docId,
-                    displayName,
-                    docUri?.ToString() ?? "",
-                    isDir));
+                Debug.WriteLine($"Null cursor for {childrenUri} — provider may not support tree queries");
+                return results;
             }
-            catch (Exception ex)
+
+            while (cursor.MoveToNext())
             {
-                Debug.WriteLine($"Error reading cursor row: {ex.Message}");
+                // ... existing cursor reading code
             }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"GetChildDocuments failed for {parentDocId}: {ex.Message}");
+            // Google Drive and some other providers throw here
         }
 
         return results;

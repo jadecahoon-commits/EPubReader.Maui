@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
@@ -64,6 +64,8 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.9" />
 		<PackageReference Include="VersOne.Epub" Version="3.3.5" />
+		<PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3527" />
+		<PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
 	</ItemGroup>
 
 </Project>

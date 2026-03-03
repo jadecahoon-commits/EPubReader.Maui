@@ -20,7 +20,8 @@ namespace EPubReader.Maui
             var uri = data.Data;
             ContentResolver?.TakePersistableUriPermission(uri,
                 Android.Content.ActivityFlags.GrantReadUriPermission |
-                Android.Content.ActivityFlags.GrantWriteUriPermission);
+                Android.Content.ActivityFlags.GrantWriteUriPermission |
+                (Android.Content.ActivityFlags)0x00000200);
 
             OnFolderPicked?.Invoke(requestCode, uri.ToString()!);
         }

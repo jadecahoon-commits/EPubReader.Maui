@@ -159,10 +159,14 @@ public partial class SettingsPage : ContentPage
     private static void LaunchFolderPicker(int requestCode)
     {
         var intent = new Android.Content.Intent(Android.Content.Intent.ActionOpenDocumentTree);
+        intent.PutExtra("android.content.extra.SHOW_ADVANCED", true);
+        intent.PutExtra("android.content.extra.FANCY", true);
         intent.AddFlags(
             Android.Content.ActivityFlags.GrantReadUriPermission |
             Android.Content.ActivityFlags.GrantWriteUriPermission |
-            Android.Content.ActivityFlags.GrantPersistableUriPermission);
+            Android.Content.ActivityFlags.GrantPersistableUriPermission |
+            (Android.Content.ActivityFlags)0x00000200
+        );
         Platform.CurrentActivity?.StartActivityForResult(intent, requestCode);
     }
 #endif
