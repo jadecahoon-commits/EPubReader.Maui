@@ -12,7 +12,7 @@ namespace EPubReader.Maui;
     new[] { Intent.ActionView },
     Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
     DataScheme = "com.companyname.epubreader.maui",
-    DataHost = "oauth2redirect")]
+    DataPath = "/oauth2redirect")]   // ← DataPath, not DataHost
 public class WebAuthCallbackActivity : WebAuthenticatorCallbackActivity
 {
 }
