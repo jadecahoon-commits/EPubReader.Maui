@@ -193,28 +193,46 @@
                 </Grid>
 
                 <!-- Upload / Download row — only visible when signed in -->
+                <!-- Upload / Download row — only visible when signed in -->
                 <Grid x:Name="GoogleDriveActionsGrid"
-                      ColumnDefinitions="*,*"
-                      ColumnSpacing="12"
-                      IsVisible="False">
+      RowDefinitions="Auto,Auto"
+      RowSpacing="8"
+      IsVisible="False">
 
-                    <Button Grid.Column="0"
-                            Text="⬆  Upload to Drive"
-                            Clicked="GoogleDriveUpload_Click"
-                            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
-                            TextColor="{AppThemeBinding Dark=White, Light=Black}"
-                            CornerRadius="4"
-                            Padding="12,8"
-                            FontSize="13" />
+                    <!-- Row 0: Upload / Download -->
+                    <Grid Grid.Row="0"
+          ColumnDefinitions="*,*"
+          ColumnSpacing="12">
 
-                    <Button Grid.Column="1"
-                            Text="⬇  Download from Drive"
-                            Clicked="GoogleDriveDownload_Click"
-                            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
-                            TextColor="{AppThemeBinding Dark=White, Light=Black}"
-                            CornerRadius="4"
-                            Padding="12,8"
-                            FontSize="13" />
+                        <Button Grid.Column="0"
+                Text="⬆  Upload to Drive"
+                Clicked="GoogleDriveUpload_Click"
+                BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+                TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                CornerRadius="4"
+                Padding="12,8"
+                FontSize="13" />
+
+                        <Button Grid.Column="1"
+                Text="⬇  Download from Drive"
+                Clicked="GoogleDriveDownload_Click"
+                BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+                TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                CornerRadius="4"
+                Padding="12,8"
+                FontSize="13" />
+                    </Grid>
+
+                    <!-- Row 1: Set Calibre Library location on Drive -->
+                    <Button Grid.Row="1"
+            Text="📁  Set Drive Library Location"
+            Clicked="GoogleDrivePickFolder_Click"
+            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+            TextColor="{AppThemeBinding Dark=White, Light=Black}"
+            CornerRadius="4"
+            Padding="12,8"
+            FontSize="13"
+            HorizontalOptions="Fill" />
                 </Grid>
 
                 <!-- Drive status message (upload/download feedback) -->

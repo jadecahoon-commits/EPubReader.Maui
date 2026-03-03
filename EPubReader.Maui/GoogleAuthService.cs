@@ -96,6 +96,7 @@ public class GoogleAuthService
             var state = Guid.NewGuid().ToString("N");
             var scopes = Uri.EscapeDataString(
                 "https://www.googleapis.com/auth/drive.file " +
+                "https://www.googleapis.com/auth/drive.readonly " +
                 "https://www.googleapis.com/auth/userinfo.email");
 
             var authUrl =
@@ -296,7 +297,7 @@ public class GoogleAuthService
     {
         var credential = GoogleCredential
             .FromAccessToken(_accessToken)
-            .CreateScoped(DriveService.Scope.DriveFile);
+            .CreateScoped(DriveService.Scope.DriveFile, DriveService.Scope.DriveReadonly);
 
         return new DriveService(new BaseClientService.Initializer
         {
