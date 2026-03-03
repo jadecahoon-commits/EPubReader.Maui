@@ -172,6 +172,11 @@
                                FontSize="12"
                                TextColor="{AppThemeBinding Dark=#E50914, Light=#E50914}"
                                Margin="0,4,0,0" />
+
+                        <Label x:Name="GoogleDriveLibraryLabel"
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                               Margin="0,2,0,0" />
                     </VerticalStackLayout>
 
                     <!-- Sign In / Sign Out button -->
