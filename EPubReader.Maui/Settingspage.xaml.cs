@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Maui.Storage;
+using System.Diagnostics;
 
 namespace EPubReader.Maui;
 
@@ -9,7 +10,13 @@ public partial class SettingsPage : ContentPage
         InitializeComponent();
         DarkModeToggle.IsToggled = LibraryData.Theme == "Dark";
         UpdatePathLabels();
+        // Restore Google Drive sign-in state from SecureStorage
+#if ANDROID
+        _ = InitGoogleDriveAsync();
+#endif
     }
+
+    // ── Path labels ───────────────────────────────────────────────────────────
 
     private void UpdatePathLabels()
     {
@@ -39,17 +46,17 @@ public partial class SettingsPage : ContentPage
         };
         LaunchFolderPicker(1001);
 #else
-    try
-    {
-        var result = await CommunityToolkit.Maui.Storage.FolderPicker.Default.PickAsync(default);
-        if (!result.IsSuccessful) return;
-        LibraryData.LibraryPath = result.Folder.Path;
-        UpdatePathLabels();
-    }
-    catch (Exception ex)
-    {
-        await DisplayAlert("Error", $"Could not pick folder: {ex.Message}", "OK");
-    }
+        try
+        {
+            var result = await FolderPicker.Default.PickAsync(default);
+            if (!result.IsSuccessful) return;
+            LibraryData.LibraryPath = result.Folder.Path;
+            UpdatePathLabels();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Could not pick folder: {ex.Message}", "OK");
+        }
 #endif
     }
 
@@ -170,4 +177,178 @@ public partial class SettingsPage : ContentPage
         Platform.CurrentActivity?.StartActivityForResult(intent, requestCode);
     }
 #endif
+
+    // ── Google Drive ──────────────────────────────────────────────────────────
+#if ANDROID
+    private async Task InitGoogleDriveAsync()
+    {
+        await GoogleAuthService.Instance.InitAsync();
+        UpdateGoogleDriveUI();
+    }
+
+    private void UpdateGoogleDriveUI()
+    {
+        var isSignedIn = GoogleAuthService.Instance.IsSignedIn;
+
+        GoogleDriveStatusLabel.Text = isSignedIn
+            ? $"Signed in as {GoogleAuthService.Instance.UserEmail}"
+            : "Not signed in";
+
+        GoogleDriveButton.Text = isSignedIn ? "Sign Out" : "Sign In";
+        GoogleDriveButton.BackgroundColor = isSignedIn
+            ? Color.FromArgb("#888888")
+            : Color.FromArgb("#4285F4");
+
+        GoogleDriveActionsGrid.IsVisible = isSignedIn;
+        GoogleDriveActionStatus.IsVisible = false;
+    }
+
+    private async void GoogleDrive_Click(object? sender, EventArgs e)
+    {
+        if (GoogleAuthService.Instance.IsSignedIn)
+        {
+            // Sign out
+            var confirm = await DisplayAlert(
+                "Sign Out",
+                "Sign out of Google Drive? Your local data won't be affected.",
+                "Sign Out", "Cancel");
+
+            if (!confirm) return;
+
+            GoogleAuthService.Instance.SignOut();
+            UpdateGoogleDriveUI();
+        }
+        else
+        {
+            GoogleDriveButton.IsEnabled = false;
+            GoogleDriveButton.Text = "Signing in…";
+
+            try
+            {
+                var success = await GoogleAuthService.Instance.SignInAsync();
+
+                if (success)
+                {
+                    UpdateGoogleDriveUI();
+                }
+                else
+                {
+                    await DisplayAlert("Sign In Failed",
+                        "SignInAsync returned false — check debug output.", "OK");
+                    GoogleDriveButton.IsEnabled = true;
+                    GoogleDriveButton.Text = "Sign In";
+                }
+            }
+            catch (Exception ex)
+            {
+                // Show the REAL exception instead of swallowing it
+                await DisplayAlert("Exception",
+                    $"{ex.GetType().Name}\n\n{ex.Message}\n\n{ex.StackTrace}", "OK");
+                GoogleDriveButton.IsEnabled = true;
+                GoogleDriveButton.Text = "Sign In";
+            }
+        }
+    }
+
+    private async void GoogleDriveUpload_Click(object? sender, EventArgs e)
+    {
+        await RunDriveActionAsync(async () =>
+        {
+            // Resolve the local data file path the same way LibraryData does
+            var localFile = ResolveLocalDataFile();
+            if (localFile == null || !File.Exists(localFile))
+            {
+                await DisplayAlert("Nothing to Upload",
+                    "No local library-data.json found. Save some data first.", "OK");
+                return;
+            }
+
+            var ok = await GoogleAuthService.Instance.UploadLibraryDataAsync(localFile);
+            ShowDriveStatus(ok
+                ? "✓ Uploaded to Google Drive"
+                : "✗ Upload failed — check your connection");
+        });
+    }
+
+    private async void GoogleDriveDownload_Click(object? sender, EventArgs e)
+    {
+        await RunDriveActionAsync(async () =>
+        {
+            var localFile = ResolveLocalDataFile();
+            if (localFile == null)
+            {
+                await DisplayAlert("Error", "No local save path is configured.", "OK");
+                return;
+            }
+
+            bool overwrite = true;
+            if (File.Exists(localFile))
+            {
+                overwrite = await DisplayAlert(
+                    "Overwrite Local Data?",
+                    "This will replace your local library-data.json with the version from Google Drive. Continue?",
+                    "Yes, overwrite", "Cancel");
+            }
+
+            if (!overwrite) return;
+
+            var ok = await GoogleAuthService.Instance.DownloadLibraryDataAsync(localFile);
+            if (ok)
+            {
+                LibraryData.Load();
+                ShowDriveStatus("✓ Downloaded from Google Drive — library data reloaded");
+            }
+            else
+            {
+                ShowDriveStatus("✗ Download failed — no file on Drive yet, or check your connection");
+            }
+        });
+    }
+#endif
+
+    private async Task RunDriveActionAsync(Func<Task> action)
+    {
+        GoogleDriveActionsGrid.IsEnabled = false;
+        GoogleDriveActionStatus.IsVisible = true;
+        GoogleDriveActionStatus.Text = "Working…";
+
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Drive action error: {ex}");
+            ShowDriveStatus($"✗ Error: {ex.Message}");
+        }
+        finally
+        {
+            GoogleDriveActionsGrid.IsEnabled = true;
+        }
+    }
+
+    private void ShowDriveStatus(string message)
+    {
+        GoogleDriveActionStatus.IsVisible = true;
+        GoogleDriveActionStatus.Text = message;
+    }
+
+    /// <summary>
+    /// Returns the path to library-data.json, mirroring LibraryData's internal logic.
+    /// We duplicate the path resolution here so the Settings page can locate the file
+    /// without exposing LibraryData internals.
+    /// </summary>
+    private static string? ResolveLocalDataFile()
+    {
+        var saveDataPath = LibraryData.SaveDataPath;
+
+        if (!string.IsNullOrEmpty(saveDataPath) && !saveDataPath.StartsWith("content://"))
+            return System.IO.Path.Combine(saveDataPath, "library-data.json");
+
+        // Fallback to local app data
+        return System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "EPubReader",
+            "library-data.json");
+    }
 }

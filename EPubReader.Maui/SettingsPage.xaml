@@ -16,128 +16,210 @@
                TextColor="{AppThemeBinding Dark=White, Light=Black}"
                Margin="0,0,0,24" />
 
-        <VerticalStackLayout Grid.Row="1" Spacing="24">
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="24">
 
-            <!-- ── APPEARANCE ── -->
-            <Label Text="APPEARANCE"
-                   FontSize="11"
-                   FontAttributes="Bold"
-                   TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                   CharacterSpacing="3" />
-
-            <Grid ColumnDefinitions="*,Auto">
-                <VerticalStackLayout>
-                    <Label Text="Dark Mode"
-                           FontSize="15"
-                           FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Dark=White, Light=Black}" />
-                    <Label Text="Switch between light and dark interface"
-                           FontSize="12"
-                           TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                           Margin="0,3,0,0" />
-                </VerticalStackLayout>
-
-                <Switch Grid.Column="1"
-                        x:Name="DarkModeToggle"
-                        VerticalOptions="Center"
-                        Toggled="DarkModeToggle_Toggled" />
-            </Grid>
-
-            <BoxView HeightRequest="1"
-                     Color="{AppThemeBinding Dark=#333333, Light=#dddddd}" />
-
-            <!-- ── LIBRARY ── -->
-            <Label Text="LIBRARY"
-                   FontSize="11"
-                   FontAttributes="Bold"
-                   TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                   CharacterSpacing="3" />
-
-            <Grid ColumnDefinitions="*,Auto">
-                <VerticalStackLayout>
-                    <Label Text="Library Folder"
-                           FontSize="15"
-                           FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Dark=White, Light=Black}" />
-                    <Label Text="Root folder containing your Calibre library"
-                           FontSize="12"
-                           TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                           Margin="0,3,0,0" />
-                    <Label x:Name="LibraryPathLabel"
-                           FontSize="12"
-                           TextColor="{AppThemeBinding Dark=#E50914, Light=#E50914}"
-                           Margin="0,4,0,0"
-                           LineBreakMode="TailTruncation" />
-                </VerticalStackLayout>
-
-                <Button Grid.Column="1"
-                        Text="Browse"
-                        Clicked="BrowseLibrary_Click"
-                        BackgroundColor="#E50914"
-                        TextColor="White"
-                        CornerRadius="4"
-                        Padding="16,8"
-                        VerticalOptions="Start"
-                        Margin="12,0,0,0" />
-            </Grid>
-
-            <BoxView HeightRequest="1"
-                     Color="{AppThemeBinding Dark=#333333, Light=#dddddd}" />
-
-            <!-- ── SYNC / SAVE DATA ── -->
-            <Label Text="SYNC"
-                   FontSize="11"
-                   FontAttributes="Bold"
-                   TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                   CharacterSpacing="3" />
-
-            <Grid ColumnDefinitions="*,Auto">
-                <VerticalStackLayout>
-                    <Label Text="Save Data Folder"
-                           FontSize="15"
-                           FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Dark=White, Light=Black}" />
-                    <Label Text="Where fandoms, categories &amp; reading positions are stored. Point this to a cloud-synced folder (OneDrive, Dropbox, etc.) to sync across devices."
-                           FontSize="12"
-                           TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                           Margin="0,3,0,0"
-                           LineBreakMode="WordWrap" />
-                    <Label x:Name="SaveDataPathLabel"
-                           FontSize="12"
-                           TextColor="{AppThemeBinding Dark=#E50914, Light=#E50914}"
-                           Margin="0,4,0,0"
-                           LineBreakMode="TailTruncation" />
-                </VerticalStackLayout>
-
-                <Button Grid.Column="1"
-                        Text="Browse"
-                        Clicked="BrowseSaveData_Click"
-                        BackgroundColor="#E50914"
-                        TextColor="White"
-                        CornerRadius="4"
-                        Padding="16,8"
-                        VerticalOptions="Start"
-                        Margin="12,0,0,0" />
-            </Grid>
-
-            <!-- Info box -->
-            <Border BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}"
-                    Stroke="{AppThemeBinding Dark=#333333, Light=#dddddd}"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 6"
-                    Padding="14,10">
-                <Label FontSize="12"
+                <!-- ── APPEARANCE ── -->
+                <Label Text="APPEARANCE"
+                       FontSize="11"
+                       FontAttributes="Bold"
                        TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                       LineBreakMode="WordWrap">
-                    <Label.FormattedText>
-                        <FormattedString>
-                            <Span Text="💡  " />
-                            <Span Text="Set the same Save Data Folder on each device to keep everything in sync. Your library folder is stored locally per-device, since the path will differ between Windows and Android." />
-                        </FormattedString>
-                    </Label.FormattedText>
-                </Label>
-            </Border>
+                       CharacterSpacing="3" />
 
-        </VerticalStackLayout>
+                <Grid ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout>
+                        <Label Text="Dark Mode"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Dark=White, Light=Black}" />
+                        <Label Text="Switch between light and dark interface"
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                               Margin="0,3,0,0" />
+                    </VerticalStackLayout>
+
+                    <Switch Grid.Column="1"
+                            x:Name="DarkModeToggle"
+                            VerticalOptions="Center"
+                            Toggled="DarkModeToggle_Toggled" />
+                </Grid>
+
+                <BoxView HeightRequest="1"
+                         Color="{AppThemeBinding Dark=#333333, Light=#dddddd}" />
+
+                <!-- ── LIBRARY ── -->
+                <Label Text="LIBRARY"
+                       FontSize="11"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                       CharacterSpacing="3" />
+
+                <Grid ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout>
+                        <Label Text="Library Folder"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Dark=White, Light=Black}" />
+                        <Label Text="Root folder containing your Calibre library"
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                               Margin="0,3,0,0" />
+                        <Label x:Name="LibraryPathLabel"
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Dark=#E50914, Light=#E50914}"
+                               Margin="0,4,0,0"
+                               LineBreakMode="TailTruncation" />
+                    </VerticalStackLayout>
+
+                    <Button Grid.Column="1"
+                            Text="Browse"
+                            Clicked="BrowseLibrary_Click"
+                            BackgroundColor="#E50914"
+                            TextColor="White"
+                            CornerRadius="4"
+                            Padding="16,8"
+                            VerticalOptions="Start"
+                            Margin="12,0,0,0" />
+                </Grid>
+
+                <BoxView HeightRequest="1"
+                         Color="{AppThemeBinding Dark=#333333, Light=#dddddd}" />
+
+                <!-- ── SYNC / SAVE DATA ── -->
+                <Label Text="SYNC"
+                       FontSize="11"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                       CharacterSpacing="3" />
+
+                <Grid ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout>
+                        <Label Text="Save Data Folder"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Dark=White, Light=Black}" />
+                        <Label Text="Where fandoms, categories &amp; reading positions are stored. Point this to a cloud-synced folder (OneDrive, Dropbox, etc.) to sync across devices."
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                               Margin="0,3,0,0"
+                               LineBreakMode="WordWrap" />
+                        <Label x:Name="SaveDataPathLabel"
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Dark=#E50914, Light=#E50914}"
+                               Margin="0,4,0,0"
+                               LineBreakMode="TailTruncation" />
+                    </VerticalStackLayout>
+
+                    <Button Grid.Column="1"
+                            Text="Browse"
+                            Clicked="BrowseSaveData_Click"
+                            BackgroundColor="#E50914"
+                            TextColor="White"
+                            CornerRadius="4"
+                            Padding="16,8"
+                            VerticalOptions="Start"
+                            Margin="12,0,0,0" />
+                </Grid>
+
+                <!-- Info box -->
+                <Border BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}"
+                        Stroke="{AppThemeBinding Dark=#333333, Light=#dddddd}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 6"
+                        Padding="14,10">
+                    <Label FontSize="12"
+                           TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                           LineBreakMode="WordWrap">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="💡  " />
+                                <Span Text="Set the same Save Data Folder on each device to keep everything in sync. Your library folder is stored locally per-device, since the path will differ between Windows and Android." />
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </Border>
+
+                <BoxView HeightRequest="1"
+                         Color="{AppThemeBinding Dark=#333333, Light=#dddddd}" />
+
+                <!-- ── GOOGLE DRIVE ── -->
+                <Label Text="GOOGLE DRIVE"
+                       FontSize="11"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                       CharacterSpacing="3" />
+
+                <Grid ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout Spacing="3">
+                        <HorizontalStackLayout Spacing="8">
+                            <!-- Google "G" colour dots icon approximation -->
+                            <Label Text="🔵"
+                                   FontSize="18"
+                                   VerticalOptions="Center" />
+                            <Label Text="Google Drive"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                                   VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Label Text="Sign in to upload and download library-data.json directly to your Google Drive."
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                               Margin="0,3,0,0"
+                               LineBreakMode="WordWrap" />
+                        <!-- Status: shows email when signed in, or "Not signed in" -->
+                        <Label x:Name="GoogleDriveStatusLabel"
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Dark=#E50914, Light=#E50914}"
+                               Margin="0,4,0,0" />
+                    </VerticalStackLayout>
+
+                    <!-- Sign In / Sign Out button -->
+                    <Button Grid.Column="1"
+                            x:Name="GoogleDriveButton"
+                            Text="Sign In"
+                            Clicked="GoogleDrive_Click"
+                            BackgroundColor="#4285F4"
+                            TextColor="White"
+                            CornerRadius="4"
+                            Padding="16,8"
+                            VerticalOptions="Start"
+                            Margin="12,0,0,0" />
+                </Grid>
+
+                <!-- Upload / Download row — only visible when signed in -->
+                <Grid x:Name="GoogleDriveActionsGrid"
+                      ColumnDefinitions="*,*"
+                      ColumnSpacing="12"
+                      IsVisible="False">
+
+                    <Button Grid.Column="0"
+                            Text="⬆  Upload to Drive"
+                            Clicked="GoogleDriveUpload_Click"
+                            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+                            TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                            CornerRadius="4"
+                            Padding="12,8"
+                            FontSize="13" />
+
+                    <Button Grid.Column="1"
+                            Text="⬇  Download from Drive"
+                            Clicked="GoogleDriveDownload_Click"
+                            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+                            TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                            CornerRadius="4"
+                            Padding="12,8"
+                            FontSize="13" />
+                </Grid>
+
+                <!-- Drive status message (upload/download feedback) -->
+                <Label x:Name="GoogleDriveActionStatus"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                       IsVisible="False"
+                       HorizontalTextAlignment="Center" />
+
+            </VerticalStackLayout>
+        </ScrollView>
     </Grid>
 </ContentPage>
