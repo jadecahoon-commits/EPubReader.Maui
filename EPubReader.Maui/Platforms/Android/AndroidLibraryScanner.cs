@@ -256,7 +256,15 @@ public class AndroidLibraryScanner : ILibraryScanner
 
             while (cursor.MoveToNext())
             {
-                // ... existing cursor reading code
+                var docId = cursor.GetString(0) ?? "";
+                var displayName = cursor.GetString(1) ?? "";
+                var mimeType = cursor.GetString(2) ?? "";
+                bool isDir = mimeType == DocumentsContract.Document.MimeTypeDir;
+
+                // Build a tree-accessible URI (required for ContentResolver.OpenInputStream)
+                var docUri = DocumentsContract.BuildDocumentUriUsingTree(treeUri, docId);
+
+                results.Add(new DocumentInfo(docId, displayName, docUri?.ToString() ?? "", isDir));
             }
         }
         catch (Exception ex)
