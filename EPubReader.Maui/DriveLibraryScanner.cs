@@ -73,13 +73,9 @@ public class DriveLibraryScanner : ILibraryScanner
     public static async Task<string?> ResolveToLocalPathAsync(string path)
     {
         var fileId = DriveLibraryManifest.ParseDriveFileId(path);
-        if (fileId == null)
-        {
-            // Not a Drive path — return as-is (local file)
-            return path;
-        }
+        if (fileId == null) return path; // not a Drive path
 
-        var localPath = LocalCachePath(fileId);
+        var localPath = LocalCachePath(path); // pass full path, not just fileId
         if (File.Exists(localPath))
         {
             Debug.WriteLine($"DriveLibraryScanner: cache hit for {fileId}");
@@ -91,27 +87,24 @@ public class DriveLibraryScanner : ILibraryScanner
         return ok ? localPath : null;
     }
 
-    /// <summary>
-    /// Synchronous version — only returns the path if already cached locally.
-    /// Used by ReadFileText / OpenFileStream which are not async.
-    /// For actual book opening, use ResolveToLocalPathAsync.
-    /// </summary>
     private static string? ResolveToLocalPath(string path)
     {
         var fileId = DriveLibraryManifest.ParseDriveFileId(path);
         if (fileId == null) return path;
 
-        var localPath = LocalCachePath(fileId);
+        var localPath = LocalCachePath(path); // pass full path, not just fileId
         return File.Exists(localPath) ? localPath : null;
     }
 
-    private static string LocalCachePath(string fileId)
-    {
-        Directory.CreateDirectory(CacheDir);
-        // Sanitise the file ID (should already be safe, but belt-and-braces)
-        var safe = string.Concat(fileId.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
-        return Path.Combine(CacheDir, safe);
-    }
+    private static string LocalCachePath(string path)
+{
+    // Extract the raw fileId (without extension) for the Drive API call,
+    // but keep the extension for the local filename so EpubReader recognises it.
+    var afterScheme = path.StartsWith("gdrive://") ? path["gdrive://".Length..] : path;
+    var safe = string.Concat(afterScheme.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+    Directory.CreateDirectory(CacheDir);
+    return Path.Combine(CacheDir, safe);
+}
 
     // ── Cache management ──────────────────────────────────────────────────────
 

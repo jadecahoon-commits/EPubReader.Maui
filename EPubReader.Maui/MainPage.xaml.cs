@@ -295,7 +295,7 @@ public partial class MainPage : ContentPage
             };
             card.SetAppThemeColor(Border.StrokeProperty, Color.FromArgb("#e0e0e0"), Color.FromArgb("#3a3a3a"));
 
-            var grid = new Grid { InputTransparent = true };
+            var grid = new Grid { InputTransparent = false };
 
             // Cover image
             var coverImage = new Image
@@ -429,10 +429,76 @@ public partial class MainPage : ContentPage
 
             grid.Children.Add(dragHandle);
 
+            // ── Tap to select on Android (CollectionView selection doesn't fire reliably) ──
+            var cardTap = new TapGestureRecognizer();
+            cardTap.Tapped += (s, args) =>
+            {
+                if (card.BindingContext is BookItem book)
+                {
+                    var parent = card.Parent;
+                    while (parent != null && parent is not CollectionView)
+                        parent = parent.Parent;
+                    if (parent is CollectionView cv)
+                    {
+                        // If the item is already selected, SelectionChanged won't fire,
+                        // so manually invoke the description panel logic.
+                        if (cv.SelectedItem == book)
+                            SelectBook(book, cv);
+                        else
+                            cv.SelectedItem = book;
+                    }
+                }
+            };
+            card.GestureRecognizers.Add(cardTap);
+
+            card.Content = grid;
+
             card.Content = grid;
 
             return card;
         });
+    }
+
+
+    private void SelectBook(BookItem book, CollectionView cv)
+    {
+        try
+        {
+            // Animate previous card back to normal
+            if (_lastSelectedCard != null)
+            {
+                _lastSelectedCard.ScaleTo(1.0, 200, Easing.CubicOut);
+                _lastSelectedCard.StrokeThickness = 1;
+                _lastSelectedCard.SetAppThemeColor(Border.StrokeProperty,
+                    Color.FromArgb("#e0e0e0"), Color.FromArgb("#3a3a3a"));
+                _lastSelectedCard = null;
+            }
+
+            _selectedBook = book;
+
+            var card = FindCardForItem(cv, book);
+            if (card != null)
+            {
+                card.ScaleTo(1.2, 250, Easing.CubicOut);
+                card.Stroke = Color.FromArgb("#E50914");
+                card.StrokeThickness = 2;
+                _lastSelectedCard = card;
+            }
+
+            SelectedBookTitle.Text = book.Title;
+            SelectedBookAuthor.Text = $"by {book.Author}";
+            SelectedBookType.Text = book.FileType.ToUpperInvariant();
+            CategoryInput.Text = book.Category;
+            SelectedBookDescription.Text = !string.IsNullOrWhiteSpace(book.Description)
+                ? book.Description
+                : "No description available.";
+
+            DescriptionPanel.IsVisible = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error selecting book: {ex}");
+        }
     }
 
     // ── Fandom list ───────────────────────────────────────────────────────────

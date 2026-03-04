@@ -85,10 +85,10 @@ public class DriveLibraryManifest
                     {
                         Title = book.Title,
                         Author = author.Name,
-                        FilePath = DriveFilePath(file.DriveFileId),
+                        FilePath = DriveFilePath(file.DriveFileId, file.Extension),
                         FileType = file.Extension.TrimStart('.'),
                         CoverImagePath = book.CoverDriveFileId is { } coverId
-                            ? DriveFilePath(coverId)
+                            ? DriveFilePath(file.DriveFileId, file.Extension)
                             : null,
                         Description = book.Description,
                         SeriesIndex = book.SeriesIndex,
@@ -106,13 +106,19 @@ public class DriveLibraryManifest
 
     /// <summary>
     /// Canonical path scheme for Drive files used as BookItem.FilePath.
-    /// Format: gdrive://{driveFileId}
     /// </summary>
-    public static string DriveFilePath(string driveFileId) => $"gdrive://{driveFileId}";
+    // Format: gdrive://{driveFileId}.{ext}  (e.g. gdrive://1h_WzuT245m4....epub)
+    public static string DriveFilePath(string driveFileId, string extension)
+        => $"gdrive://{driveFileId}{extension}";
 
-    /// <summary>Extracts the Drive file ID from a gdrive:// path, or null if not a Drive path.</summary>
     public static string? ParseDriveFileId(string path)
-        => path.StartsWith("gdrive://") ? path["gdrive://".Length..] : null;
+    {
+        if (!path.StartsWith("gdrive://")) return null;
+        var rest = path["gdrive://".Length..];
+        // Strip extension if present so we get the bare Drive file ID
+        var dot = rest.LastIndexOf('.');
+        return dot > 0 ? rest[..dot] : rest;
+    }
 }
 
 public class DriveAuthorEntry
