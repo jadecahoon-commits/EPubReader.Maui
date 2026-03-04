@@ -19,16 +19,6 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <VerticalStackLayout>
-                <Label x:Name="BookTitleText"
-                       FontSize="16"
-                       FontAttributes="Bold"
-                       TextColor="{AppThemeBinding Dark=White, Light=Black}" />
-                <Label x:Name="BookAuthorText"
-                       FontSize="12"
-                       TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                       Margin="0,2,0,0" />
-            </VerticalStackLayout>
 
             <HorizontalStackLayout Grid.Column="1"
                                    Spacing="8"

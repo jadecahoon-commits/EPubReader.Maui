@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using VersOne.Epub;
+using VersOne.Epub.Options;
+
 
 namespace EPubReader.Maui;
 
@@ -32,8 +34,6 @@ public partial class ReaderPage : ContentPage
         InitializeComponent();
         _scanner = scanner;
         Title = bookItem.Title;
-        BookTitleText.Text = bookItem.Title;
-        BookAuthorText.Text = bookItem.Author;
         _filePath = bookItem.FilePath;
         _calibreKey = bookItem.CalibreKey;
     }
@@ -160,29 +160,61 @@ public partial class ReaderPage : ContentPage
                 resolvedPath = localPath;
             }
 
-            var stream = _scanner.OpenFileStream(resolvedPath);
-            _book = stream != null
-                ? await EpubReader.ReadBookAsync(stream)
-                : await EpubReader.ReadBookAsync(resolvedPath);
+            string? tempFilePath = null;
 
-            _chapters = _book.ReadingOrder
-                .OfType<EpubLocalTextContentFile>()
-                .Where(c => !string.IsNullOrWhiteSpace(c.Content))
-                .ToList();
-
-            if (_chapters.Count == 0)
+            try
             {
-                StatusText.Text = "No readable content found in this ePub.";
-                return;
+                var stream = _scanner.OpenFileStream(resolvedPath);
+
+                if (stream != null)
+                {
+                    // On Android with content:// URIs, write to a temp file first
+                    // to ensure EpubReader can properly read all content
+                    tempFilePath = Path.Combine(
+                        FileSystem.CacheDirectory,
+                        $"epub_temp_{Guid.NewGuid():N}.epub");
+
+                    using (var fileStream = File.Create(tempFilePath))
+                    {
+                        await stream.CopyToAsync(fileStream);
+                    }
+                    stream.Dispose();
+
+                    _book = await EpubReader.ReadBookAsync(tempFilePath);
+                }
+                else
+                {
+                    _book = await EpubReader.ReadBookAsync(resolvedPath);
+                }
+
+                _chapters = _book.ReadingOrder
+                    .OfType<EpubLocalTextContentFile>()
+                    .Where(c => !string.IsNullOrWhiteSpace(c.Content))
+                    .ToList();
+
+                if (_chapters.Count == 0)
+                {
+                    StatusText.Text = "No readable content found in this ePub.";
+                    return;
+                }
+
+                BuildToc();
+
+                var savedPos = LibraryData.GetPosition(_calibreKey);
+                _currentChapter = Math.Clamp(savedPos?.Chapter ?? 0, 0, _chapters.Count - 1);
+                _savedPage = savedPos?.Page ?? 0;
+
+                await ShowChapterAsync(_currentChapter, goToLastPage: false);
             }
-
-            BuildToc();
-
-            var savedPos = LibraryData.GetPosition(_calibreKey);
-            _currentChapter = Math.Clamp(savedPos?.Chapter ?? 0, 0, _chapters.Count - 1);
-            _savedPage = savedPos?.Page ?? 0;
-
-            await ShowChapterAsync(_currentChapter, goToLastPage: false);
+            finally
+            {
+                // Clean up temp file
+                if (tempFilePath != null && File.Exists(tempFilePath))
+                {
+                    try { File.Delete(tempFilePath); }
+                    catch { /* ignore cleanup errors */ }
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -496,6 +528,8 @@ public partial class ReaderPage : ContentPage
 
     // ── HTML builder ──────────────────────────────────────────────────────────
 
+    // Replace the BuildPagedHtml method in ReaderPage.xaml.cs with this version:
+
     private static string BuildPagedHtml(string rawHtml, bool isDark)
     {
         var bg = isDark ? "#0f0f0f" : "#f5f5f5";
@@ -527,7 +561,7 @@ public partial class ReaderPage : ContentPage
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: {bg};
+    background: {bg} !important;
   }}
 
   #pager {{
@@ -536,38 +570,66 @@ public partial class ReaderPage : ContentPage
     column-fill: auto;
     height: 100vh;
     width: max-content;
-    background: {bg};
+    background: {bg} !important;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }}
 
   #content {{
     width: 100vw;
-    padding: 48px 120px 56px;
+    padding: 32px 20px 40px;
     font-family: Georgia, 'Times New Roman', serif;
-    font-size: 18px;
+    font-size: 17px;
     line-height: 1.75;
-    color: {fg};
+    color: {fg} !important;
+    background: {bg} !important;
+  }}
+
+  /* Force our colors to override epub's embedded styles */
+  #content * {{
+    color: inherit !important;
+    background-color: transparent !important;
+  }}
+
+  /* Responsive padding for larger screens */
+  @media (min-width: 600px) {{
+    #content {{
+      padding: 40px 60px 48px;
+      font-size: 18px;
+    }}
+  }}
+
+  @media (min-width: 900px) {{
+    #content {{
+      padding: 48px 120px 56px;
+    }}
   }}
 
   @keyframes fadeIn {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
   #pager {{ animation: fadeIn 0.2s ease; }}
 
   h1, h2, h3, h4, h5, h6 {{
-    color: {headingColor};
+    color: {headingColor} !important;
     margin: 1em 0 0.5em;
     font-family: Georgia, serif;
   }}
   p {{ margin-bottom: 0.9em; }}
-  a {{ color: {linkColor}; text-decoration: none; }}
+  a {{ color: {linkColor} !important; text-decoration: none; }}
   hr {{ border: none; border-top: 1px solid {hrColor}; margin: 1.5em 0; }}
   blockquote {{
     border-left: 3px solid {hrColor};
     padding-left: 1em;
-    color: {blockquoteColor};
+    color: {blockquoteColor} !important;
     font-style: italic;
     margin: 1em 0;
   }}
   img {{ max-width: 100%; height: auto; }}
+
+  /* Override common epub style patterns */
+  .calibre, .calibre1, .calibre2, .calibre3,
+  div, span, p, section, article {{
+    color: inherit !important;
+    background: transparent !important;
+  }}
 </style>
 </head>
 <body>
@@ -615,7 +677,6 @@ public partial class ReaderPage : ContentPage
   }}
 
   // ── Keyboard: arrow keys → page nav ─────────────────────────────────────
-  // (Chapter nav is handled by the C# keyboard hook on Windows)
 
   document.addEventListener('keydown', function(e) {{
     if (e.key === 'ArrowRight') {{ e.preventDefault(); emitNav('next'); }}
@@ -623,8 +684,6 @@ public partial class ReaderPage : ContentPage
   }});
 
   // ── Click / tap: left 15% → prev, right 15% → next ──────────────────────
-  // The MAUI tap-zone BoxViews on top handle this for Android too, but the JS
-  // handler is the primary path on Windows where the WebView gets direct input.
 
   var tapStartX = -1;
 
@@ -637,10 +696,8 @@ public partial class ReaderPage : ContentPage
     var dx = Math.abs(e.clientX - tapStartX);
     tapStartX = -1;
 
-    // Ignore drags / text selection attempts
     if (dx > 20) return;
 
-    // Let links handle themselves
     var target = e.target;
     while (target && target !== document.body) {{
       if (target.tagName === 'A') return;
@@ -652,7 +709,6 @@ public partial class ReaderPage : ContentPage
 
     if (x < width * 0.15)      emitNav('prev');
     else if (x > width * 0.85) emitNav('next');
-    // Middle 70%: no navigation
   }});
 
   // ── Touch fallback (Android WebView may not fire pointer events) ─────────
@@ -667,7 +723,7 @@ public partial class ReaderPage : ContentPage
     if (touchStartX < 0) return;
     var dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
     touchStartX = -1;
-    if (dx > 20) return; // swipe — ignore (swipe nav could be added later)
+    if (dx > 20) return;
 
     var x     = e.changedTouches[0].clientX;
     var width = window.innerWidth;
