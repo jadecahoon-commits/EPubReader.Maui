@@ -532,9 +532,12 @@ public partial class ReaderPage : ContentPage
 
     private static string BuildPagedHtml(string rawHtml, bool isDark)
     {
-        var bg = isDark ? "#0f0f0f" : "#f5f5f5";
-        var fg = isDark ? "#DCDCDC" : "#1a1a1a";
+        //var bg = isDark ? "#0f0f0f" : "#f5f5f5";
+        //var fg = isDark ? "#DCDCDC" : "#1a1a1a";
         var headingColor = isDark ? "#FFFFFF" : "#000000";
+        var bg = "#f5f5f5";
+        var fg = "#000000";
+
         var linkColor = "#E50914";
         var hrColor = isDark ? "#2A2A2A" : "#DDDDDD";
         var blockquoteColor = isDark ? "#AAAAAA" : "#555555";
@@ -554,58 +557,44 @@ public partial class ReaderPage : ContentPage
 <head>
 <meta charset=""utf-8"" />
 <meta name=""viewport"" content=""width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"" />
+
 <style>
-:root {{
-    color-scheme: only light;
-  }}
+
+/* Prevent forced colors */
+* {{
+    forced-color-adjust: none !important;
+}}
   
-  @media (prefers-color-scheme: dark) {{
-    html, body, #pager, #content {{
-      background: {bg} !important;
-      color: {fg} !important;
-    }}
-  }}
-  
-  @media (prefers-color-scheme: light) {{
-    html, body, #pager, #content {{
-      background: {bg} !important;
-      color: {fg} !important;
-    }}
-  }}
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 
-  html, body {{
+ html, body {{
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: {bg} !important;
-  }}
+    background-color: {bg} !important;
+    color: {fg} !important;
+}}
 
-  #pager {{
+#pager {{
     column-width: 100vw;
     column-gap: 0;
     column-fill: auto;
     height: 100vh;
     width: max-content;
-    background: {bg} !important;
+    background-color: {bg} !important;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }}
+}}
 
-  #content {{
+#content {{
     width: 100vw;
     padding: 32px 20px 40px;
     font-family: Georgia, 'Times New Roman', serif;
     font-size: 17px;
     line-height: 1.75;
     color: {fg} !important;
-    background: {bg} !important;
-  }}
+    background-color: {bg} !important;
+}}
 
-  /* Force our colors to override epub's embedded styles */
-  #content * {{
-    color: inherit !important;
-    background-color: transparent !important;
-  }}
 
   /* Responsive padding for larger screens */
   @media (min-width: 600px) {{

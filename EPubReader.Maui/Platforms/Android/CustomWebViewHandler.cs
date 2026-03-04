@@ -1,8 +1,5 @@
-// File: Platforms/Android/CustomWebViewHandler.cs
-
 using Android.Webkit;
 using Microsoft.Maui.Handlers;
-using Microsoft.Maui.Platform;
 
 namespace EPubReader.Maui.Platforms.Android.Handlers;
 
@@ -12,21 +9,34 @@ public class CustomWebViewHandler : WebViewHandler
     {
         base.ConnectHandler(platformView);
 
-        // Force dark background on the WebView itself
-        platformView.SetBackgroundColor(global::Android.Graphics.Color.ParseColor("#0f0f0f"));
+        // Transparent background - let HTML fully control colors
+        platformView.SetBackgroundColor(global::Android.Graphics.Color.Transparent);
 
-        // For Android 13+ (API 33+), use the new AlgorithmicDarkeningAllowed property
+        var settings = platformView.Settings;
+
+        // CRITICAL: Disable ALL dark mode interference
+        // Must set BOTH for all Android versions
+
+        // API 33+ (Tiramisu): This is the modern way
         if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.Tiramisu)
         {
-            platformView.Settings.AlgorithmicDarkeningAllowed = false;
+            settings.AlgorithmicDarkeningAllowed = false;
         }
 
-        // For Android 10-12 (API 29-32), use the legacy ForceDark setting
-        if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.Q)
-        {
+        // API 29-32: Legacy ForceDark - ALWAYS set this too, even on API 33+
+        // Some WebView implementations still check this
 #pragma warning disable CA1422
-            platformView.Settings.ForceDark = ForceDarkMode.Off;
+        settings.ForceDark = ForceDarkMode.Off;
 #pragma warning restore CA1422
-        }
+
+        // Additional settings that can interfere
+        settings.SetSupportZoom(false);
+        settings.BuiltInZoomControls = false;
+    }
+
+    // Override to reapply settings when WebView is updated
+    protected override void DisconnectHandler(global::Android.Webkit.WebView platformView)
+    {
+        base.DisconnectHandler(platformView);
     }
 }
