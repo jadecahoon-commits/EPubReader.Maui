@@ -423,4 +423,174 @@ public class GoogleAuthService
             return null;
         }
     }
+
+
+    // ── Drive library scanning ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Prefix stored in LibraryData.LibraryPath to indicate a Drive-backed library.
+    /// Format: gdrive://&lt;rootFolderId&gt;
+    /// </summary>
+    public const string DriveLibraryPrefix = "gdrive://";
+
+    private static readonly string[] _driveBookExtensions =
+        [".epub", ".mobi", ".azw", ".azw3", ".pdf", ".doc", ".docx", ".txt"];
+
+    private static readonly string[] _driveImageExtensions =
+        [".jpg", ".jpeg", ".png"];
+
+    /// <summary>
+    /// Walks the Drive folder tree (author → book → files) and returns a BookItem
+    /// list that mirrors what LibraryScanner produces for local folders.
+    /// FilePath is set to "gdrive://&lt;fileId&gt;" so the rest of the app can
+    /// identify it as a Drive file without extra lookups.
+    /// </summary>
+    public async Task<List<BookItem>> ScanLibraryFolderAsync(string rootFolderId)
+    {
+        var books = new List<BookItem>();
+
+        if (!await EnsureValidTokenAsync()) return books;
+
+        var service = BuildDriveService();
+
+        // Depth 1 — author folders
+        var authorFolders = await ListDriveChildren(service, rootFolderId, foldersOnly: true);
+
+        foreach (var authorFolder in authorFolders)
+        {
+            var author = authorFolder.Name;
+
+            // Depth 2 — book folders
+            var bookFolders = await ListDriveChildren(service, authorFolder.Id, foldersOnly: true);
+
+            foreach (var bookFolder in bookFolders)
+            {
+                var folderTitle = bookFolder.Name;
+
+                // All files inside the book folder
+                var files = await ListDriveChildren(service, bookFolder.Id, foldersOnly: false);
+
+                // Cover image
+                var coverFile = files.FirstOrDefault(f =>
+                    !f.IsFolder &&
+                    _driveImageExtensions.Contains(
+                        Path.GetExtension(f.Name).ToLowerInvariant()));
+                string? coverUrl = coverFile != null ? BuildDriveDownloadUrl(coverFile.Id) : null;
+
+                // OPF metadata
+                string? title = folderTitle;
+                string? description = null;
+                float seriesIndex = 0f;
+                bool isFinished = false;
+
+                var opfFile = files.FirstOrDefault(f =>
+                    !f.IsFolder &&
+                    f.Name.EndsWith(".opf", StringComparison.OrdinalIgnoreCase));
+
+                if (opfFile != null)
+                {
+                    var opfContent = await DownloadDriveFileTextAsync(service, opfFile.Id);
+                    if (opfContent != null)
+                    {
+                        var meta = LibraryScanner.ParseOpfMetadataPublic(opfContent);
+                        title = meta.Title ?? folderTitle;
+                        description = meta.Description;
+                        seriesIndex = meta.SeriesIndex;
+                        isFinished = meta.IsFinished;
+                    }
+                }
+
+                // One BookItem per supported book file
+                foreach (var file in files)
+                {
+                    if (file.IsFolder) continue;
+                    var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+                    if (!_driveBookExtensions.Contains(ext)) continue;
+
+                    var filePath = $"{DriveLibraryPrefix}{file.Id}";
+                    books.Add(new BookItem
+                    {
+                        Title = title ?? folderTitle,
+                        Author = author,
+                        FilePath = filePath,
+                        FileType = ext.TrimStart('.'),
+                        CoverImagePath = coverUrl,
+                        Description = description,
+                        SeriesIndex = seriesIndex,
+                        IsFinished = isFinished,
+                        Fandom = LibraryData.GetFandom(filePath),
+                        Category = LibraryData.GetCategory(filePath)
+                    });
+                }
+            }
+        }
+
+        return books;
+    }
+
+    /// <summary>
+    /// Downloads a Drive file (identified by its Drive file ID) into a MemoryStream
+    /// so it can be streamed to the epub reader.
+    /// </summary>
+    public async Task<Stream?> OpenDriveFileStreamAsync(string driveFileId)
+    {
+        if (!await EnsureValidTokenAsync()) return null;
+        try
+        {
+            var service = BuildDriveService();
+            var request = service.Files.Get(driveFileId);
+            var ms = new MemoryStream();
+            await request.DownloadAsync(ms);
+            ms.Position = 0;
+            return ms;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"OpenDriveFileStream {driveFileId}: {ex.Message}");
+            return null;
+        }
+    }
+
+    // ── Internal Drive helpers ────────────────────────────────────────────────────
+
+    private record DriveChildItem(string Id, string Name, bool IsFolder);
+
+    private static async Task<List<DriveChildItem>> ListDriveChildren(
+        DriveService service, string parentId, bool foldersOnly)
+    {
+        var request = service.Files.List();
+        request.Q = foldersOnly
+            ? $"'{parentId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+            : $"'{parentId}' in parents and trashed = false";
+        request.Fields = "files(id, name, mimeType)";
+        request.OrderBy = "name";
+        request.PageSize = 1000;
+
+        var result = await request.ExecuteAsync();
+        return result.Files
+            .Select(f => new DriveChildItem(
+                f.Id,
+                f.Name,
+                f.MimeType == "application/vnd.google-apps.folder"))
+            .ToList();
+    }
+
+    private static string BuildDriveDownloadUrl(string fileId) =>
+        $"https://www.googleapis.com/drive/v3/files/{fileId}?alt=media";
+
+    private static async Task<string?> DownloadDriveFileTextAsync(DriveService service, string fileId)
+    {
+        try
+        {
+            var request = service.Files.Get(fileId);
+            using var ms = new MemoryStream();
+            await request.DownloadAsync(ms);
+            return Encoding.UTF8.GetString(ms.ToArray());
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"DownloadDriveFileText {fileId}: {ex.Message}");
+            return null;
+        }
+    }
 }

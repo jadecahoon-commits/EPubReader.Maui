@@ -59,7 +59,15 @@ public partial class DriveFolderPickerPage : ContentPage
     private async void OnSelectClicked(object sender, EventArgs e)
     {
         var folderName = BreadcrumbLabel.Text.Split(" › ").Last();
+
+        // Persist the Drive folder as the selected library
         await GoogleAuthService.Instance.SetLibraryFolderAsync(_currentFolderId, folderName);
+
+        // Store a gdrive:// URI as the LibraryPath so MainPage knows to use Drive scanning
+        LibraryData.LibraryPath = $"{GoogleAuthService.DriveLibraryPrefix}{_currentFolderId}";
+
         await Navigation.PopModalAsync();
+        // MainPage.OnAppearing fires after modal closes and calls LoadBooks(),
+        // which detects the gdrive:// prefix and runs the Drive scanner.
     }
 }

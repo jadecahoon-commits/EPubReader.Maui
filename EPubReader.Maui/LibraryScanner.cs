@@ -210,4 +210,45 @@ public static class LibraryScanner
         if (ce < 0) return null;
         return tag[ci..ce];
     }
+
+
+    /// <summary>
+    /// Public wrapper so GoogleAuthService can parse downloaded OPF content
+    /// without duplicating the parsing logic.
+    /// </summary>
+    public static (string? Title, string? Description, float SeriesIndex, bool IsFinished)
+        ParseOpfMetadataPublic(string opfContent)
+    {
+        var title = ExtractOpfField(opfContent, "dc:title");
+        var description = ExtractOpfField(opfContent, "dc:description");
+
+        if (description != null)
+        {
+            description = System.Net.WebUtility.HtmlDecode(description);
+            description = System.Text.RegularExpressions.Regex.Replace(description, "<.*?>", "");
+            if (string.IsNullOrWhiteSpace(description))
+                description = null;
+        }
+
+        float seriesIndex = 0f;
+        var seriesIndexStr = ExtractMetaContent(opfContent, "calibre:series_index");
+        if (seriesIndexStr != null)
+            float.TryParse(seriesIndexStr,
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out seriesIndex);
+
+        bool isFinished = false;
+        var finishedMeta = ExtractMetaContent(opfContent, "calibre:user_metadata:#finished");
+        if (finishedMeta != null)
+        {
+            var decoded = System.Net.WebUtility.HtmlDecode(finishedMeta);
+            var match = System.Text.RegularExpressions.Regex.Match(
+                decoded, @"""#value#""\s*:\s*(true|false|null)");
+            if (match.Success)
+                isFinished = match.Groups[1].Value == "true";
+        }
+
+        return (title, description, seriesIndex, isFinished);
+    }
 }

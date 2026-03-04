@@ -45,7 +45,25 @@ public partial class ReaderPage : ContentPage
     {
         try
         {
-            var stream = _scanner.OpenFileStream(filePath);
+            Stream? stream = null;
+
+            // ── Drive-backed file ─────────────────────────────────────────────────
+            if (filePath.StartsWith(GoogleAuthService.DriveLibraryPrefix))
+            {
+                var fileId = filePath[GoogleAuthService.DriveLibraryPrefix.Length..];
+                stream = await GoogleAuthService.Instance.OpenDriveFileStreamAsync(fileId);
+                if (stream == null)
+                {
+                    StatusText.Text = "Could not download file from Google Drive.";
+                    return;
+                }
+            }
+            else
+            {
+                // ── Local / SAF file ──────────────────────────────────────────────
+                stream = _scanner.OpenFileStream(filePath);
+            }
+
             if (stream != null)
                 _book = await EpubReader.ReadBookAsync(stream);
             else

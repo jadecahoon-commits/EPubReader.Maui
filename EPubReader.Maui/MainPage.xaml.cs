@@ -67,59 +67,64 @@ public partial class MainPage : ContentPage
 
     private void LoadBooks()
     {
+        var libraryPath = LibraryData.LibraryPath;
+        if (string.IsNullOrEmpty(libraryPath))
+        {
+            _books = new List<BookItem>();
+            return;
+        }
+
+        // ── Google Drive library ──────────────────────────────────────────────────
+        if (libraryPath.StartsWith(GoogleAuthService.DriveLibraryPrefix))
+        {
+            var folderId = libraryPath[GoogleAuthService.DriveLibraryPrefix.Length..];
+            _ = LoadDriveBooksAsync(folderId);
+            return;
+        }
+
+        // ── Local / SAF library ───────────────────────────────────────────────────
         try
         {
-            var libraryPath = LibraryData.LibraryPath;
-            if (string.IsNullOrEmpty(libraryPath))
-            {
-                _books = new List<BookItem>();
-                return;
-            }
-
-            var exists = Directory.Exists(libraryPath);
-            var dirs = exists ? Directory.GetDirectories(libraryPath) : Array.Empty<string>();
-
             _books = _scanner.ScanLibrary(libraryPath);
-
             foreach (var book in _books)
                 book.Category = LibraryData.GetCategory(book.FilePath);
-
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                var details = "";
-                foreach (var dir in dirs)
-                {
-                    var bookDirs = Directory.GetDirectories(dir);
-                    var files = Directory.GetFiles(dir);
-                    details += $"\n{Path.GetFileName(dir)}/\n";
-                    details += $"  subdirs: {string.Join(", ", bookDirs.Select(Path.GetFileName))}\n";
-                    details += $"  files: {string.Join(", ", files.Select(Path.GetFileName))}\n";
-
-                    foreach (var bookDir in bookDirs)
-                    {
-                        var bookFiles = Directory.GetFiles(bookDir);
-                        details += $"  {Path.GetFileName(bookDir)}/\n";
-                        details += $"    files: {string.Join(", ", bookFiles.Select(Path.GetFileName))}\n";
-                    }
-                }
-
-                await DisplayAlert("Debug",
-                    $"Path: {libraryPath}\nBooks found: {_books.Count}\n{details}",
-                    "OK");
-            });
         }
         catch (Exception ex)
         {
             _books = new List<BookItem>();
-            MainThread.BeginInvokeOnMainThread(async () =>
+            Debug.WriteLine($"LoadBooks error: {ex}");
+        }
+    }
+
+    private async Task LoadDriveBooksAsync(string folderId)
+    {
+        try
+        {
+            // Show a loading state while Drive is being scanned
+            MainThread.BeginInvokeOnMainThread(() =>
             {
-                await DisplayAlert("Error",
-                    $"Path: {LibraryData.LibraryPath}\n" +
-                    $"Exception: {ex.GetType().Name}: {ex.Message}",
-                    "OK");
+                _books = new List<BookItem>();
+                // Optionally show a spinner / status label here
+            });
+
+            var driveBooks = await GoogleAuthService.Instance.ScanLibraryFolderAsync(folderId);
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _books = driveBooks;
+                LoadFandoms();
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"LoadDriveBooksAsync error: {ex}");
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _books = new List<BookItem>();
             });
         }
     }
+
 
     private void LoadFandoms()
     {
