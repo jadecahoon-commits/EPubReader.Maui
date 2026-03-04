@@ -5,6 +5,8 @@ namespace EPubReader.Maui;
 
 public partial class ReaderPage : ContentPage
 {
+    // ── State ─────────────────────────────────────────────────────────────────
+
     private EpubBook? _book;
     private List<EpubLocalTextContentFile> _chapters = new();
     private int _currentChapter = 0;
@@ -15,7 +17,6 @@ public partial class ReaderPage : ContentPage
     private bool _goToLastPageOnLoad = false;
     private int _savedPage = -1;
     private string _calibreKey = "";
-
     private string _filePath = "";
 
     // TOC
@@ -23,6 +24,8 @@ public partial class ReaderPage : ContentPage
     private bool _tocOpen = false;
 
     private readonly ILibraryScanner _scanner;
+
+    // ── Constructor ───────────────────────────────────────────────────────────
 
     public ReaderPage(BookItem bookItem, ILibraryScanner scanner)
     {
@@ -35,20 +38,114 @@ public partial class ReaderPage : ContentPage
         _calibreKey = bookItem.CalibreKey;
     }
 
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         if (_loaded) return;
         _loaded = true;
         await LoadBookAsync(_filePath);
+        HookKeyboard();
     }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        UnhookKeyboard();
+    }
+
+    // ── Keyboard hook (Windows) ───────────────────────────────────────────────
+    // Left/Right arrow → prev/next PAGE (handled in JS inside WebView too, but
+    // this catches focus when the WebView doesn't have it).
+    // The top-bar chapter buttons also respond to keyboard via their own handler
+    // (see PrevChapter_Click / NextChapter_Click), but we want modifier-free
+    // arrow presses on the nav bar to jump chapters.  We achieve this by
+    // checking focus: if a nav Button has focus, arrow = chapter; otherwise
+    // arrow = page.
+
+#if WINDOWS
+    private Microsoft.UI.Xaml.Window? _winWindow;
+
+    private void HookKeyboard()
+    {
+        try
+        {
+            if (Application.Current?.Windows is { Count: > 0 } wins)
+            {
+                var mauiWin = wins[0];
+                var nativeWin = mauiWin.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+                if (nativeWin != null)
+                {
+                    _winWindow = nativeWin;
+                    nativeWin.Content.KeyDown += OnWindowKeyDown;
+                }
+            }
+        }
+        catch (Exception ex) { Debug.WriteLine($"HookKeyboard: {ex.Message}"); }
+    }
+
+    private void UnhookKeyboard()
+    {
+        try
+        {
+            if (_winWindow != null)
+                _winWindow.Content.KeyDown -= OnWindowKeyDown;
+        }
+        catch { }
+    }
+
+    private void OnWindowKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        // Determine whether focus is on one of the chapter-nav buttons in the top bar.
+        // If so, arrow keys jump chapters; otherwise they jump pages.
+        bool chapterFocus = IsChapterButtonFocused();
+
+        if (e.Key == Windows.System.VirtualKey.Left)
+        {
+            e.Handled = true;
+            if (chapterFocus)
+                _ = NavigatePrevChapterAsync();
+            else
+                _ = NavigatePrevPageAsync();
+        }
+        else if (e.Key == Windows.System.VirtualKey.Right)
+        {
+            e.Handled = true;
+            if (chapterFocus)
+                _ = NavigateNextChapterAsync();
+            else
+                _ = NavigateNextPageAsync();
+        }
+    }
+
+    private bool IsChapterButtonFocused()
+    {
+        try
+        {
+            var focused = Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(
+                _winWindow?.Content.XamlRoot) as Microsoft.UI.Xaml.FrameworkElement;
+            if (focused == null) return false;
+            // Check by automation id / tag — simplest: see if it's one of our chapter buttons
+            // We tag them via AutomationProperties in XAML or just check by name mapping.
+            // Fallback: check if the focused element's name contains "Chapter"
+            return focused.Name is "PrevChapterButton" or "NextChapterButton";
+        }
+        catch { return false; }
+    }
+#else
+    private void HookKeyboard() { }
+    private void UnhookKeyboard() { }
+#endif
+
+    // ── Book loading ──────────────────────────────────────────────────────────
 
     private async Task LoadBookAsync(string filePath)
     {
         try
         {
-            // If this is a Drive book, download it to local cache first
             string resolvedPath = filePath;
+
             if (DriveLibraryManifest.ParseDriveFileId(filePath) != null)
             {
                 StatusText.Text = "Downloading from Google Drive…";
@@ -64,10 +161,9 @@ public partial class ReaderPage : ContentPage
             }
 
             var stream = _scanner.OpenFileStream(resolvedPath);
-            if (stream != null)
-                _book = await EpubReader.ReadBookAsync(stream);
-            else
-                _book = await EpubReader.ReadBookAsync(resolvedPath);
+            _book = stream != null
+                ? await EpubReader.ReadBookAsync(stream)
+                : await EpubReader.ReadBookAsync(resolvedPath);
 
             _chapters = _book.ReadingOrder
                 .OfType<EpubLocalTextContentFile>()
@@ -79,6 +175,8 @@ public partial class ReaderPage : ContentPage
                 StatusText.Text = "No readable content found in this ePub.";
                 return;
             }
+
+            BuildToc();
 
             var savedPos = LibraryData.GetPosition(_calibreKey);
             _currentChapter = Math.Clamp(savedPos?.Chapter ?? 0, 0, _chapters.Count - 1);
@@ -98,7 +196,6 @@ public partial class ReaderPage : ContentPage
     private void BuildToc()
     {
         _tocEntries = new List<TocEntry>();
-
         if (_book == null) return;
 
         try
@@ -108,37 +205,30 @@ public partial class ReaderPage : ContentPage
                 keyToIndex[_chapters[i].Key] = i;
 
             if (_book.Navigation != null)
-            {
                 WalkNavItems(_book.Navigation, keyToIndex, 0);
-            }
 
             if (_tocEntries.Count == 0)
             {
                 for (int i = 0; i < _chapters.Count; i++)
-                {
-                    var title = Path.GetFileNameWithoutExtension(_chapters[i].Key);
-                    _tocEntries.Add(new TocEntry { Title = title, ChapterIndex = i, Depth = 0 });
-                }
+                    _tocEntries.Add(new TocEntry
+                    {
+                        Title = Path.GetFileNameWithoutExtension(_chapters[i].Key),
+                        ChapterIndex = i,
+                        Depth = 0
+                    });
             }
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"BuildToc error: {ex.Message}");
-        }
+        catch (Exception ex) { Debug.WriteLine($"BuildToc error: {ex.Message}"); }
 
         TocListView.ItemsSource = _tocEntries;
     }
 
-    private void WalkNavItems(
-        IEnumerable<EpubNavigationItem> items,
-        Dictionary<string, int> keyToIndex,
-        int depth)
+    private void WalkNavItems(IEnumerable<EpubNavigationItem> items,
+                              Dictionary<string, int> keyToIndex, int depth)
     {
         foreach (var item in items)
         {
-            var title = item.Title ?? "(untitled)";
             int chapterIndex = -1;
-
             if (item.Link?.ContentFilePath is string path)
             {
                 var filePart = path.Contains('#') ? path[..path.IndexOf('#')] : path;
@@ -148,16 +238,13 @@ public partial class ReaderPage : ContentPage
                     var key = kv.Key.Replace('\\', '/');
                     if (key.EndsWith(filePart, StringComparison.OrdinalIgnoreCase) ||
                         filePart.EndsWith(key, StringComparison.OrdinalIgnoreCase))
-                    {
-                        chapterIndex = kv.Value;
-                        break;
-                    }
+                    { chapterIndex = kv.Value; break; }
                 }
             }
 
             _tocEntries.Add(new TocEntry
             {
-                Title = title,
+                Title = item.Title ?? "(untitled)",
                 ChapterIndex = chapterIndex,
                 Depth = depth
             });
@@ -191,13 +278,30 @@ public partial class ReaderPage : ContentPage
     {
         if (TocListView.SelectedItem is not TocEntry entry) return;
         TocListView.SelectedItem = null;
-
         if (entry.ChapterIndex < 0 || entry.ChapterIndex >= _chapters.Count) return;
 
         _tocOpen = false;
         TocOverlay.IsVisible = false;
-
         _ = ShowChapterAsync(entry.ChapterIndex);
+    }
+
+    // ── Theme ─────────────────────────────────────────────────────────────────
+
+    private void ThemeButton_Click(object? sender, EventArgs e)
+    {
+        LibraryData.Theme = LibraryData.Theme == "Dark" ? "Light" : "Dark";
+        RefreshTheme();
+    }
+
+    public async void RefreshTheme()
+    {
+        if (_chapters.Count == 0) return;
+        _savedPage = _currentPage;
+        var chapter = _chapters[_currentChapter];
+        ContentWebView.Source = new HtmlWebViewSource
+        {
+            Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark")
+        };
     }
 
     // ── Chapter display ───────────────────────────────────────────────────────
@@ -213,12 +317,15 @@ public partial class ReaderPage : ContentPage
         _goToLastPageOnLoad = goToLastPage;
         if (overridePage >= 0) _savedPage = overridePage;
 
+        LoadingOverlay.IsVisible = true;
+
         var chapter = _chapters[chapterIndex];
-        var html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark");
+        ContentWebView.Source = new HtmlWebViewSource
+        {
+            Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark")
+        };
 
-        ContentWebView.Source = new HtmlWebViewSource { Html = html };
-
-        // Fallback: if OnWebViewNavigated never fires, force recalculate after a delay
+        // Fallback: if OnWebViewNavigated never fires, force recalculate
         _ = Task.Run(async () =>
         {
             await Task.Delay(1500);
@@ -230,22 +337,23 @@ public partial class ReaderPage : ContentPage
         });
     }
 
+    // ── WebView events ────────────────────────────────────────────────────────
+
     private async void OnWebViewNavigated(object? sender, WebNavigatedEventArgs e)
-    {
-        // proceed even on non-success — the HTML is already set, JS may still work
-        await RecalculatePagesAsync();
-    }
+        => await RecalculatePagesAsync();
 
     private async void OnWebViewNavigating(object? sender, WebNavigatingEventArgs e)
     {
-        if (e.Url.StartsWith("reader://nav/"))
+        // Intercept reader://nav/* URLs emitted by the JS inside the page
+        if (!e.Url.StartsWith("reader://nav/")) return;
+
+        e.Cancel = true;
+        var cmd = e.Url["reader://nav/".Length..];
+
+        switch (cmd)
         {
-            e.Cancel = true;
-            var command = e.Url.Replace("reader://nav/", "");
-            if (command == "next")
-                await NavigateNextAsync();
-            else if (command == "prev")
-                await NavigatePrevAsync();
+            case "next": await NavigateNextPageAsync(); break;
+            case "prev": await NavigatePrevPageAsync(); break;
         }
     }
 
@@ -253,10 +361,9 @@ public partial class ReaderPage : ContentPage
     {
         try
         {
-            // Small delay to let the WebView finish rendering
-            await Task.Delay(200);
+            await Task.Delay(150); // let WebView paint
 
-            var totalStr = await ContentWebView.EvaluateJavaScriptAsync("getTotalPages()");
+            var totalStr = await ContentWebView.EvaluateJavaScriptAsync("window.__getTotalPages()");
             if (int.TryParse(totalStr, out var total) && total > 0)
             {
                 _totalPages = total;
@@ -279,14 +386,9 @@ public partial class ReaderPage : ContentPage
 
                 await GoToPageAsync(targetPage);
             }
-
-            LoadingOverlay.IsVisible = false;
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"RecalculatePages error: {ex.Message}");
-            LoadingOverlay.IsVisible = false;
-        }
+        catch (Exception ex) { Debug.WriteLine($"RecalculatePages error: {ex.Message}"); }
+        finally { LoadingOverlay.IsVisible = false; }
     }
 
     private async Task GoToPageAsync(int page)
@@ -294,201 +396,15 @@ public partial class ReaderPage : ContentPage
         page = Math.Clamp(page, 0, Math.Max(0, _totalPages - 1));
         _currentPage = page;
 
-        await ContentWebView.EvaluateJavaScriptAsync($"goToPage({page})");
-        UpdateNavigation();
+        await ContentWebView.EvaluateJavaScriptAsync($"window.__goToPage({page})");
+        UpdateNavUi();
         SavePosition();
     }
 
-    private void SavePosition()
-    {
-        if (!string.IsNullOrEmpty(_filePath))
-            LibraryData.SetPosition(_calibreKey, _currentChapter, _currentPage);
-    }
+    // ── Page navigation ───────────────────────────────────────────────────────
 
-    private void UpdateNavigation()
-    {
-        var chapterLabel = _chapters.Count > 1
-            ? $"Ch. {_currentChapter + 1}/{_chapters.Count}  ·  "
-            : "";
-
-        PageIndexText.Text = _totalPages > 0
-            ? $"{chapterLabel}Page {_currentPage + 1} of {_totalPages}"
-            : "";
-
-        PrevPageButton.IsEnabled = _currentPage > 0 || _currentChapter > 0;
-        NextPageButton.IsEnabled = _currentPage < _totalPages - 1 || _currentChapter < _chapters.Count - 1;
-
-        StatusText.Text = _chapters.Count > 0 ? _chapters[_currentChapter].Key : "";
-    }
-
-    // ── HTML builder ──────────────────────────────────────────────────────────
-
-    private static string BuildPagedHtml(string rawHtml, bool isDark)
-    {
-        var bg = isDark ? "#0f0f0f" : "#f5f5f5";
-        var fg = isDark ? "#DCDCDC" : "#1a1a1a";
-        var headingColor = isDark ? "#FFFFFF" : "#000000";
-        var linkColor = "#E50914";
-        var hrColor = isDark ? "#2A2A2A" : "#DDDDDD";
-        var blockquoteColor = isDark ? "#AAAAAA" : "#555555";
-
-        var body = rawHtml;
-        var bodyStart = rawHtml.IndexOf("<body", StringComparison.OrdinalIgnoreCase);
-        var bodyEnd = rawHtml.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
-        if (bodyStart >= 0 && bodyEnd > bodyStart)
-        {
-            var innerStart = rawHtml.IndexOf('>', bodyStart) + 1;
-            body = rawHtml[innerStart..bodyEnd];
-        }
-
-        // MAUI WebView doesn't support window.chrome.webview.postMessage
-        // Instead we use URL scheme interception for navigation
-        return $@"
-            <!DOCTYPE html>
-            <html>
-            <head>
-            <meta charset=""utf-8"" />
-            <meta name=""viewport"" content=""width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"" />
-            <style>
-                * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-
-                html, body {{
-                    width: 100%;
-                    height: 100%;
-                    overflow: hidden;
-                    background: {bg};
-                }}
-
-                #pager {{
-                    column-width: 100vw;
-                    column-gap: 0;
-                    column-fill: auto;
-                    height: 100vh;
-                    width: max-content;
-                    background: {bg};
-                    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-                    animation: fadeIn 0.25s ease;
-                }}
-
-                #content {{
-                    width: 100vw;
-                    padding: 48px 120px 56px;
-                    font-family: Georgia, 'Times New Roman', serif;
-                    font-size: 18px;
-                    line-height: 1.85;
-                    color: {fg};
-                }}
-
-                @keyframes fadeIn {{
-                    from {{ opacity: 0; }}
-                    to   {{ opacity: 1; }}
-                }}
-
-                h1, h2, h3, h4, h5, h6 {{
-                    font-family: 'Segoe UI', sans-serif;
-                    color: {headingColor};
-                    margin: 1.5em 0 0.5em;
-                    line-height: 1.3;
-                    break-after: avoid;
-                }}
-                h1 {{ font-size: 1.8em; }}
-                h2 {{ font-size: 1.4em; }}
-
-                p {{
-                    margin: 0 0 0.85em 0;
-                    orphans: 3;
-                    widows: 3;
-                }}
-
-                em, i {{ color: {fg}; }}
-                a {{ color: {linkColor}; text-decoration: none; }}
-                hr {{ border: none; border-top: 1px solid {hrColor}; margin: 2em 0; }}
-
-                img {{
-                    max-width: 100%;
-                    max-height: 80vh;
-                    height: auto;
-                    border-radius: 4px;
-                    break-inside: avoid;
-                }}
-
-                blockquote {{
-                    border-left: 3px solid #E50914;
-                    margin: 1em 0;
-                    padding: 0.5em 1em;
-                    color: {blockquoteColor};
-                    font-style: italic;
-                    break-inside: avoid;
-                }}
-
-                /* Mobile-friendly adjustments */
-                @media (max-width: 600px) {{
-                    #content {{
-                        padding: 24px 20px 32px;
-                        font-size: 16px;
-                    }}
-                }}
-            </style>
-            </head>
-            <body>
-            <div id=""pager""><div id=""content"">{body}</div></div>
-
-            <script>
-            (function() {{
-                var pager = document.getElementById('pager');
-                var currentPage = 0;
-                var pageWidth = 0;
-                var totalPages = 0;
-
-                function computeLayout() {{
-                    pageWidth = window.innerWidth;
-                    totalPages = Math.max(1, Math.round(pager.scrollWidth / pageWidth));
-                    return totalPages;
-                }}
-
-                window.getTotalPages = function() {{
-                    return computeLayout();
-                }};
-
-                window.goToPage = function(page) {{
-                    computeLayout();
-                    currentPage = Math.max(0, Math.min(page, totalPages - 1));
-                    pager.style.transform = 'translateX(' + (-currentPage * pageWidth) + 'px)';
-                }};
-
-                document.addEventListener('click', function(e) {{
-                    if (e.target.tagName === 'A') return;
-                    if (e.clientX > window.innerWidth / 2)
-                        window.location.href = 'reader://nav/next';
-                    else
-                        window.location.href = 'reader://nav/prev';
-                }});
-            }})();
-            </script>
-            </body>
-            </html>";
-    }
-
-    // ── Theme refresh ─────────────────────────────────────────────────────────
-
-    public async void RefreshTheme()
-    {
-        if (_chapters.Count == 0) return;
-        _savedPage = _currentPage;
-        var chapter = _chapters[_currentChapter];
-        var html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark");
-        ContentWebView.Source = new HtmlWebViewSource { Html = html };
-    }
-
-    // ── Navigation ────────────────────────────────────────────────────────────
-
-    private async void PrevPage_Click(object? sender, EventArgs e)
-        => await NavigatePrevAsync();
-
-    private async void NextPage_Click(object? sender, EventArgs e)
-        => await NavigateNextAsync();
-
-    private async Task NavigateNextAsync()
+    /// <summary>Navigate forward one page; auto-advance chapter at end.</summary>
+    private async Task NavigateNextPageAsync()
     {
         if (_isNavigating) return;
         _isNavigating = true;
@@ -502,7 +418,8 @@ public partial class ReaderPage : ContentPage
         finally { _isNavigating = false; }
     }
 
-    private async Task NavigatePrevAsync()
+    /// <summary>Navigate back one page; auto-retreat chapter at beginning.</summary>
+    private async Task NavigatePrevPageAsync()
     {
         if (_isNavigating) return;
         _isNavigating = true;
@@ -514,5 +431,250 @@ public partial class ReaderPage : ContentPage
                 await ShowChapterAsync(_currentChapter - 1, goToLastPage: true);
         }
         finally { _isNavigating = false; }
+    }
+
+    // ── Chapter navigation ────────────────────────────────────────────────────
+
+    private async Task NavigateNextChapterAsync()
+    {
+        if (_isNavigating || _currentChapter >= _chapters.Count - 1) return;
+        _isNavigating = true;
+        try { await ShowChapterAsync(_currentChapter + 1, goToLastPage: false); }
+        finally { _isNavigating = false; }
+    }
+
+    private async Task NavigatePrevChapterAsync()
+    {
+        if (_isNavigating || _currentChapter <= 0) return;
+        _isNavigating = true;
+        try { await ShowChapterAsync(_currentChapter - 1, goToLastPage: false); }
+        finally { _isNavigating = false; }
+    }
+
+    // ── Button / tap-zone click handlers ─────────────────────────────────────
+
+    private void PrevChapter_Click(object? sender, EventArgs e) => _ = NavigatePrevChapterAsync();
+    private void NextChapter_Click(object? sender, EventArgs e) => _ = NavigateNextChapterAsync();
+
+    /// <summary>Left edge tap zone (XAML BoxView) → prev page.</summary>
+    private void LeftTap_Tapped(object? sender, TappedEventArgs e) => _ = NavigatePrevPageAsync();
+
+    /// <summary>Right edge tap zone (XAML BoxView) → next page.</summary>
+    private void RightTap_Tapped(object? sender, TappedEventArgs e) => _ = NavigateNextPageAsync();
+
+    // ── UI update & persistence ───────────────────────────────────────────────
+
+    private void UpdateNavUi()
+    {
+        var chapterLabel = _chapters.Count > 1
+            ? $"Ch. {_currentChapter + 1}/{_chapters.Count}  ·  "
+            : "";
+
+        PageIndexText.Text = _totalPages > 0
+            ? $"{chapterLabel}Page {_currentPage + 1} of {_totalPages}"
+            : "";
+
+        PrevChapterButton.IsEnabled = _currentChapter > 0;
+        NextChapterButton.IsEnabled = _currentChapter < _chapters.Count - 1;
+
+        StatusText.Text = _chapters.Count > 0 ? _chapters[_currentChapter].Key : "";
+    }
+
+    private void SavePosition()
+    {
+        if (!string.IsNullOrEmpty(_filePath))
+            LibraryData.SetPosition(_calibreKey, _currentChapter, _currentPage);
+    }
+
+    // ── HTML builder ──────────────────────────────────────────────────────────
+
+    private static string BuildPagedHtml(string rawHtml, bool isDark)
+    {
+        var bg = isDark ? "#0f0f0f" : "#f5f5f5";
+        var fg = isDark ? "#DCDCDC" : "#1a1a1a";
+        var headingColor = isDark ? "#FFFFFF" : "#000000";
+        var linkColor = "#E50914";
+        var hrColor = isDark ? "#2A2A2A" : "#DDDDDD";
+        var blockquoteColor = isDark ? "#AAAAAA" : "#555555";
+
+        // Extract body content
+        var body = rawHtml;
+        var bodyStart = rawHtml.IndexOf("<body", StringComparison.OrdinalIgnoreCase);
+        var bodyEnd = rawHtml.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+        if (bodyStart >= 0 && bodyEnd > bodyStart)
+        {
+            var innerStart = rawHtml.IndexOf('>', bodyStart) + 1;
+            body = rawHtml[innerStart..bodyEnd];
+        }
+
+        return $@"<!DOCTYPE html>
+<html>
+<head>
+<meta charset=""utf-8"" />
+<meta name=""viewport"" content=""width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"" />
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+
+  html, body {{
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: {bg};
+  }}
+
+  #pager {{
+    column-width: 100vw;
+    column-gap: 0;
+    column-fill: auto;
+    height: 100vh;
+    width: max-content;
+    background: {bg};
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }}
+
+  #content {{
+    width: 100vw;
+    padding: 48px 120px 56px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px;
+    line-height: 1.75;
+    color: {fg};
+  }}
+
+  @keyframes fadeIn {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
+  #pager {{ animation: fadeIn 0.2s ease; }}
+
+  h1, h2, h3, h4, h5, h6 {{
+    color: {headingColor};
+    margin: 1em 0 0.5em;
+    font-family: Georgia, serif;
+  }}
+  p {{ margin-bottom: 0.9em; }}
+  a {{ color: {linkColor}; text-decoration: none; }}
+  hr {{ border: none; border-top: 1px solid {hrColor}; margin: 1.5em 0; }}
+  blockquote {{
+    border-left: 3px solid {hrColor};
+    padding-left: 1em;
+    color: {blockquoteColor};
+    font-style: italic;
+    margin: 1em 0;
+  }}
+  img {{ max-width: 100%; height: auto; }}
+</style>
+</head>
+<body>
+<div id=""pager""><div id=""content"">{body}</div></div>
+
+<script>
+(function() {{
+  var pager      = document.getElementById('pager');
+  var pageWidth  = 0;
+  var totalPages = 0;
+  var curPage    = 0;
+
+  // ── Layout ──────────────────────────────────────────────────────────────
+
+  function computeLayout() {{
+    pageWidth  = window.innerWidth;
+    totalPages = Math.max(1, Math.round(pager.scrollWidth / pageWidth));
+  }}
+
+  // ── Public API (called from C# via EvaluateJavaScriptAsync) ─────────────
+
+  window.__getTotalPages = function() {{
+    computeLayout();
+    return totalPages;
+  }};
+
+  window.__goToPage = function(page) {{
+    computeLayout();
+    curPage = Math.max(0, Math.min(page, totalPages - 1));
+    pager.style.transform = 'translateX(' + (-curPage * pageWidth) + 'px)';
+    return curPage;
+  }};
+
+  // ── Input helpers ────────────────────────────────────────────────────────
+
+  function emitNav(cmd) {{
+    // Use a tiny iframe trick so navigation doesn't replace the page on some WebViews
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = 'reader://nav/' + cmd;
+    document.body.appendChild(iframe);
+    setTimeout(function() {{ document.body.removeChild(iframe); }}, 200);
+    // Fallback: also try direct location change (MAUI intercepts Navigating)
+    try {{ window.location.href = 'reader://nav/' + cmd; }} catch(ex) {{}}
+  }}
+
+  // ── Keyboard: arrow keys → page nav ─────────────────────────────────────
+  // (Chapter nav is handled by the C# keyboard hook on Windows)
+
+  document.addEventListener('keydown', function(e) {{
+    if (e.key === 'ArrowRight') {{ e.preventDefault(); emitNav('next'); }}
+    else if (e.key === 'ArrowLeft') {{ e.preventDefault(); emitNav('prev'); }}
+  }});
+
+  // ── Click / tap: left 15% → prev, right 15% → next ──────────────────────
+  // The MAUI tap-zone BoxViews on top handle this for Android too, but the JS
+  // handler is the primary path on Windows where the WebView gets direct input.
+
+  var tapStartX = -1;
+
+  document.addEventListener('pointerdown', function(e) {{
+    tapStartX = e.clientX;
+  }});
+
+  document.addEventListener('pointerup', function(e) {{
+    if (tapStartX < 0) return;
+    var dx = Math.abs(e.clientX - tapStartX);
+    tapStartX = -1;
+
+    // Ignore drags / text selection attempts
+    if (dx > 20) return;
+
+    // Let links handle themselves
+    var target = e.target;
+    while (target && target !== document.body) {{
+      if (target.tagName === 'A') return;
+      target = target.parentElement;
+    }}
+
+    var x     = e.clientX;
+    var width = window.innerWidth;
+
+    if (x < width * 0.15)      emitNav('prev');
+    else if (x > width * 0.85) emitNav('next');
+    // Middle 70%: no navigation
+  }});
+
+  // ── Touch fallback (Android WebView may not fire pointer events) ─────────
+
+  var touchStartX = -1;
+
+  document.addEventListener('touchstart', function(e) {{
+    touchStartX = e.touches[0].clientX;
+  }}, {{ passive: true }});
+
+  document.addEventListener('touchend', function(e) {{
+    if (touchStartX < 0) return;
+    var dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
+    touchStartX = -1;
+    if (dx > 20) return; // swipe — ignore (swipe nav could be added later)
+
+    var x     = e.changedTouches[0].clientX;
+    var width = window.innerWidth;
+    if (x < width * 0.15)      emitNav('prev');
+    else if (x > width * 0.85) emitNav('next');
+  }});
+
+  // ── Recompute on resize ──────────────────────────────────────────────────
+  window.addEventListener('resize', function() {{
+    computeLayout();
+    window.__goToPage(curPage);
+  }});
+}})();
+</script>
+</body>
+</html>";
     }
 }

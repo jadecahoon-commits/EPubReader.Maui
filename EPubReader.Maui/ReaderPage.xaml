@@ -11,7 +11,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Top bar -->
+        <!-- ═══ Top bar ═══ -->
         <Grid BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}"
               Padding="20,12">
             <Grid.ColumnDefinitions>
@@ -44,13 +44,15 @@
                         CornerRadius="4"
                         Padding="0" />
 
-                <Button x:Name="PrevPageButton"
-                        Text="◀"
-                        Clicked="PrevPage_Click"
+                <!-- Prev chapter (◀◀) — keyboard: Left arrow on top bar -->
+                <Button x:Name="PrevChapterButton"
+                        Text="◀◀"
+                        Clicked="PrevChapter_Click"
                         BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
                         TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                        WidthRequest="36" HeightRequest="36"
+                        WidthRequest="44" HeightRequest="36"
                         CornerRadius="4"
+                        FontSize="10"
                         Padding="0" />
 
                 <Label x:Name="PageIndexText"
@@ -60,9 +62,21 @@
                        MinimumWidthRequest="120"
                        HorizontalTextAlignment="Center" />
 
-                <Button x:Name="NextPageButton"
-                        Text="▶"
-                        Clicked="NextPage_Click"
+                <!-- Next chapter (▶▶) — keyboard: Right arrow on top bar -->
+                <Button x:Name="NextChapterButton"
+                        Text="▶▶"
+                        Clicked="NextChapter_Click"
+                        BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+                        TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+                        WidthRequest="44" HeightRequest="36"
+                        CornerRadius="4"
+                        FontSize="10"
+                        Padding="0" />
+
+                <!-- Theme toggle -->
+                <Button x:Name="ThemeButton"
+                        Text="◑"
+                        Clicked="ThemeButton_Click"
                         BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
                         TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
                         WidthRequest="36" HeightRequest="36"
@@ -71,11 +85,49 @@
             </HorizontalStackLayout>
         </Grid>
 
-        <!-- Main content area -->
+        <!-- ═══ Main content area ═══ -->
         <Grid Grid.Row="1">
 
             <!-- WebView for chapter content -->
-            <WebView x:Name="ContentWebView" />
+            <WebView x:Name="ContentWebView"
+                     Navigating="OnWebViewNavigating"
+                     Navigated="OnWebViewNavigated" />
+
+            <!--
+                Invisible tap zones — sit on top of the WebView.
+                Left half → prev page, Right half → next page.
+                These handle Android touch and also desktop mouse clicks
+                that the WebView JS might miss (e.g. on link elements).
+                They are InputTransparent except for the tap gesture itself,
+                so text selection etc. still work in the WebView.
+                Width is set to 15% of screen so they don't eat too much content.
+            -->
+            <Grid ColumnDefinitions="0.15*,0.7*,0.15*"
+                  InputTransparent="False">
+
+                <!-- Left tap zone → prev page -->
+                <BoxView Grid.Column="0"
+                         Color="Transparent"
+                         InputTransparent="False">
+                    <BoxView.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="LeftTap_Tapped" />
+                    </BoxView.GestureRecognizers>
+                </BoxView>
+
+                <!-- Centre — fully transparent so WebView gets all input -->
+                <BoxView Grid.Column="1"
+                         Color="Transparent"
+                         InputTransparent="True" />
+
+                <!-- Right tap zone → next page -->
+                <BoxView Grid.Column="2"
+                         Color="Transparent"
+                         InputTransparent="False">
+                    <BoxView.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="RightTap_Tapped" />
+                    </BoxView.GestureRecognizers>
+                </BoxView>
+            </Grid>
 
             <!-- Loading overlay -->
             <Grid x:Name="LoadingOverlay"
@@ -91,47 +143,30 @@
                     <Label Text="Opening book..."
                            FontSize="14"
                            TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                           HorizontalOptions="Center" />
+                           HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
             </Grid>
 
             <!-- TOC overlay -->
             <Grid x:Name="TocOverlay"
                   IsVisible="False"
-                  BackgroundColor="#80000000">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="340" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+                  BackgroundColor="{AppThemeBinding Dark=#000000CC, Light=#00000066}">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="TocOverlay_Tapped" />
+                </Grid.GestureRecognizers>
 
-                <!-- Dismiss area -->
-                <Grid Grid.Column="1" BackgroundColor="Transparent">
-                    <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="TocOverlay_Tapped" />
-                    </Grid.GestureRecognizers>
-                </Grid>
-
-                <!-- TOC panel -->
-                <Grid Grid.Column="0"
-                      BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
+                <Grid HorizontalOptions="Start"
+                      WidthRequest="300"
+                      BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f9f9f9}"
+                      RowDefinitions="Auto,*">
 
                     <!-- TOC header -->
-                    <Grid Padding="20,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
+                    <Grid Padding="16,12" ColumnDefinitions="*,Auto">
                         <Label Text="Table of Contents"
-                               FontSize="18"
+                               FontSize="15"
                                FontAttributes="Bold"
                                TextColor="{AppThemeBinding Dark=White, Light=Black}"
                                VerticalOptions="Center" />
-
                         <Button Grid.Column="1"
                                 Text="✕"
                                 Clicked="TocClose_Click"
@@ -167,7 +202,7 @@
             </Grid>
         </Grid>
 
-        <!-- Status bar -->
+        <!-- ═══ Status bar ═══ -->
         <Grid Grid.Row="2"
               BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}"
               Padding="20,8">
