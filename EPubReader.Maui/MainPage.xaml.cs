@@ -52,6 +52,8 @@ public partial class MainPage : ContentPage
         base.OnAppearing();
 
 #if ANDROID
+        ApplyAndroidLayout();
+
         var status = await Permissions.RequestAsync<Permissions.StorageRead>();
         if (status != PermissionStatus.Granted)
         {
@@ -141,9 +143,12 @@ public partial class MainPage : ContentPage
 
             var previousSelection = _selectedFandom;
             FandomList.ItemsSource = fandoms;
+            FandomListAndroid.ItemsSource = fandoms;                      
+
 
             if (!string.IsNullOrEmpty(previousSelection) && fandoms.Contains(previousSelection))
                 FandomList.SelectedItem = previousSelection;
+                FandomListAndroid.SelectedItem = previousSelection;
         }
         catch (Exception ex)
         {
@@ -678,5 +683,100 @@ public partial class MainPage : ContentPage
         border.SetAppThemeColor(Border.StrokeProperty,
             Color.FromArgb("#e0e0e0"),
             Color.FromArgb("#3a3a3a"));
+    }
+
+    private void ApplyAndroidLayout()
+    {
+        // Collapse the sidebar column
+        SidebarColumn.Width = new GridLength(0);
+        SidebarPanel.IsVisible = false;
+        SidebarBorder.IsVisible = false;
+
+        // Show the bottom bar row and the bar itself
+        BottomBarRow.Height = new GridLength(64);
+        AndroidBottomBar.IsVisible = true;
+    }
+
+    // ── Bottom bar button handlers ─────────────────────────────────────────────
+
+    private async void BottomBarFandoms_Click(object? sender, EventArgs e)
+    {
+        FandomOverlay.IsVisible = true;
+        FandomSheet.TranslationY = 500;
+        await FandomSheet.TranslateTo(0, 0, 250, Easing.CubicOut);
+    }
+
+    private async void BottomBarAddFandom_Click(object? sender, EventArgs e)
+    {
+        FandomOverlay.IsVisible = true;
+        FandomSheet.TranslationY = 500;
+        await FandomSheet.TranslateTo(0, 0, 250, Easing.CubicOut);
+        await Task.Delay(280);
+        NewFandomInputAndroid.Focus();
+    }
+
+    // ── Fandom overlay dismiss ────────────────────────────────────────────────
+
+    private async void FandomOverlay_Tapped(object? sender, EventArgs e)
+        => await CloseFandomSheetAsync();
+
+    private async void CloseFandomSheet_Click(object? sender, EventArgs e)
+        => await CloseFandomSheetAsync();
+
+    private async Task CloseFandomSheetAsync()
+    {
+        await FandomSheet.TranslateTo(0, 500, 220, Easing.CubicIn);
+        FandomOverlay.IsVisible = false;
+        FandomSheet.TranslationY = 0;
+    }
+
+    // ── Fandom selected in Android sheet ─────────────────────────────────────
+
+    private async void FandomListAndroid_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        try
+        {
+            if (FandomListAndroid.SelectedItem is string fandom)
+            {
+                _selectedFandom = fandom;
+                SelectedFandomHeader.Text = fandom;
+                FandomList.SelectedItem = fandom;
+                BottomBarFandomsButton.Text = $"📚  {fandom}";
+                RebuildCategorySections(fandom);
+                await CloseFandomSheetAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error selecting fandom (Android): {ex}");
+            ShowError("Error loading fandom", ex.Message);
+        }
+    }
+
+    // ── Add fandom from Android sheet ────────────────────────────────────────
+
+    private void AddFandomAndroid_Click(object? sender, EventArgs e)
+        => CommitNewFandomAndroid(NewFandomInputAndroid.Text ?? "");
+
+    private void NewFandomInputAndroid_Completed(object? sender, EventArgs e)
+        => CommitNewFandomAndroid(NewFandomInputAndroid.Text ?? "");
+
+    private void CommitNewFandomAndroid(string fandom)
+    {
+        fandom = fandom.Trim();
+        if (string.IsNullOrWhiteSpace(fandom)) return;
+
+        try
+        {
+            LibraryData.AddStandaloneFandom(fandom);
+            NewFandomInputAndroid.Text = "";
+            LoadFandoms();
+            FandomListAndroid.SelectedItem = fandom;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error adding fandom (Android): {ex}");
+            ShowError("Failed to add fandom", ex.Message);
+        }
     }
 }
