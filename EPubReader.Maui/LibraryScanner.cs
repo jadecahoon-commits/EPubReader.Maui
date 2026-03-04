@@ -77,6 +77,9 @@ public static class LibraryScanner
                                 var ext = Path.GetExtension(file).ToLowerInvariant();
                                 if (BookExtensions.Contains(ext))
                                 {
+                                    var fileName = Path.GetFileName(file);
+                                    var calibreKey = LibraryData.BuildCalibreKey(author, folderTitle, fileName);
+
                                     books.Add(new BookItem
                                     {
                                         Title = title,
@@ -86,7 +89,8 @@ public static class LibraryScanner
                                         CoverImagePath = coverImage,
                                         Description = description,
                                         SeriesIndex = seriesIndex,
-                                        IsFinished = isFinished
+                                        IsFinished = isFinished,
+                                        CalibreKey = calibreKey
                                     });
                                 }
                             }
@@ -108,16 +112,17 @@ public static class LibraryScanner
             }
         }
 
-        // Apply saved fandom data
+        // Apply saved fandom/category data using CalibreKey
         foreach (var book in books)
         {
             try
             {
-                book.Fandom = LibraryData.GetFandom(book.FilePath);
+                book.Fandom = LibraryData.GetFandom(book.CalibreKey);
+                book.Category = LibraryData.GetCategory(book.CalibreKey);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error loading fandom for {book.FilePath}: {ex.Message}");
+                Debug.WriteLine($"Error loading fandom for {book.CalibreKey}: {ex.Message}");
                 book.Fandom = "";
             }
         }

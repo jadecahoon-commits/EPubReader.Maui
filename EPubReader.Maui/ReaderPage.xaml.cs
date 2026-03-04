@@ -14,6 +14,7 @@ public partial class ReaderPage : ContentPage
     private bool _isNavigating = false;
     private bool _goToLastPageOnLoad = false;
     private int _savedPage = -1;
+    private string _calibreKey = "";
 
     private string _filePath = "";
 
@@ -31,6 +32,7 @@ public partial class ReaderPage : ContentPage
         BookTitleText.Text = bookItem.Title;
         BookAuthorText.Text = bookItem.Author;
         _filePath = bookItem.FilePath;
+        _calibreKey = bookItem.CalibreKey;
     }
 
     protected override async void OnAppearing()
@@ -78,7 +80,7 @@ public partial class ReaderPage : ContentPage
                 return;
             }
 
-            var savedPos = LibraryData.GetPosition(_filePath);
+            var savedPos = LibraryData.GetPosition(_calibreKey);
             _currentChapter = Math.Clamp(savedPos?.Chapter ?? 0, 0, _chapters.Count - 1);
             _savedPage = savedPos?.Page ?? 0;
 
@@ -289,7 +291,7 @@ public partial class ReaderPage : ContentPage
     private void SavePosition()
     {
         if (!string.IsNullOrEmpty(_filePath))
-            LibraryData.SetPosition(_filePath, _currentChapter, _currentPage);
+            LibraryData.SetPosition(_calibreKey, _currentChapter, _currentPage);
     }
 
     private void UpdateNavigation()

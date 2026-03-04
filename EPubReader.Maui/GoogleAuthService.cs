@@ -507,20 +507,22 @@ public class GoogleAuthService
                     var ext = Path.GetExtension(file.Name).ToLowerInvariant();
                     if (!_driveBookExtensions.Contains(ext)) continue;
 
-                    var filePath = $"{DriveLibraryPrefix}{file.Id}";
-                    books.Add(new BookItem
-                    {
-                        Title = title ?? folderTitle,
-                        Author = author,
-                        FilePath = filePath,
-                        FileType = ext.TrimStart('.'),
-                        CoverImagePath = coverUrl,
-                        Description = description,
-                        SeriesIndex = seriesIndex,
-                        IsFinished = isFinished,
-                        Fandom = LibraryData.GetFandom(filePath),
-                        Category = LibraryData.GetCategory(filePath)
-                    });
+                         var filePath = $"{DriveLibraryPrefix}{file.Id}";
+                         var calibreKey = LibraryData.BuildCalibreKey(author, folderTitle, file.Name);
+                         books.Add(new BookItem
+                         {
+                             Title = title ?? folderTitle,
+                             Author = author,
+                             FilePath = filePath,
+                             FileType = ext.TrimStart('.'),
+                             CoverImagePath = coverUrl,
+                             Description = description,
+                             SeriesIndex = seriesIndex,
+                             IsFinished = isFinished,
+                             CalibreKey = calibreKey,
+                             Fandom = LibraryData.GetFandom(calibreKey),
+                             Category = LibraryData.GetCategory(calibreKey)
+                         });
                 }
             }
         }

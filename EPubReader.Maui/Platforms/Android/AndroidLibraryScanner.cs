@@ -112,20 +112,19 @@ public class AndroidLibraryScanner : ILibraryScanner
                                     {
                                         // Build the portable key that matches what Windows produces:
                                         // "Author/BookFolder/FileName.epub"
-                                        var lookupKey = $"{author}/{folderTitle}/{file.DisplayName}";
-
-                                        books.Add(new BookItem
-                                        {
-                                            Title = title ?? folderTitle,
-                                            Author = author,
-                                            FilePath = file.Uri,
-                                            LookupKey = lookupKey,
-                                            FileType = ext.TrimStart('.'),
-                                            CoverImagePath = coverUri,
-                                            Description = description,
-                                            SeriesIndex = seriesIndex,
-                                            IsFinished = isFinished
-                                        });
+                                        var calibreKey = LibraryData.BuildCalibreKey(author, folderTitle, file.DisplayName);
+                                            books.Add(new BookItem
+                                             {
+                                                 Title = title ?? folderTitle,
+                                                 Author = author,
+                                                 FilePath = file.Uri,
+                                                 FileType = ext.TrimStart('.'),
+                                                 CoverImagePath = coverUri,
+                                                 Description = description,
+                                                 SeriesIndex = seriesIndex,
+                                                 IsFinished = isFinished,
+                                                 CalibreKey = calibreKey
+                                             });
                                     }
                                 }
                                 catch (Exception ex)
@@ -153,15 +152,15 @@ public class AndroidLibraryScanner : ILibraryScanner
 
         // Apply saved fandom and category data using the portable LookupKey
         foreach (var book in books)
-        {
-            try
-            {
-                book.Fandom = LibraryData.GetFandom(book.LookupKey);
-                book.Category = LibraryData.GetCategory(book.LookupKey);
-            }
+     {
+         try
+         {
+             book.Fandom = LibraryData.GetFandom(book.CalibreKey);
+             book.Category = LibraryData.GetCategory(book.CalibreKey);
+         }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error loading data for {book.LookupKey}: {ex.Message}");
+                //Debug.WriteLine($"Error loading data for {book.LookupKey}: {ex.Message}");
                 book.Fandom = "";
                 book.Category = "";
             }

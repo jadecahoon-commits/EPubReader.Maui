@@ -77,55 +77,101 @@ public static class LibraryData
         }
     }
 
-    // ── Portable key helpers ──────────────────────────────────────────────────
+    // ── Calibre key normalization ─────────────────────────────────────────────
 
     /// <summary>
-    /// Converts a full local file path to a portable relative key for storage.
-    /// The key is relative to LibraryPath, using forward slashes so it is
-    /// identical on Windows and Android.
+    /// Builds a platform-independent Calibre key from author, book folder, and filename.
+    /// Format: "AuthorName/BookFolder/filename.ext"
+    /// All scanners should call this when creating BookItems.
     /// </summary>
-    private static string ToPortableKey(string fullPath)
+    public static string BuildCalibreKey(string author, string bookFolder, string fileName)
     {
-        if (!string.IsNullOrEmpty(_libraryPath))
-        {
-            // Normalize both to forward-slash for comparison
-            var normFull = fullPath.Replace('\\', '/');
-            var normRoot = _libraryPath.Replace('\\', '/').TrimEnd('/') + '/';
+        // Normalize separators to forward slash and trim whitespace
+        var key = $"{author.Trim()}/{bookFolder.Trim()}/{fileName.Trim()}";
+        return key.Replace('\\', '/');
+    }
 
-            if (normFull.StartsWith(normRoot, StringComparison.OrdinalIgnoreCase))
-                return normFull[normRoot.Length..]; // already forward-slash
+    /// <summary>
+    /// Attempts to extract a Calibre-style relative key from a platform-specific path.
+    /// Handles Windows paths, content:// URIs, and gdrive:// paths.
+    /// Returns the original path if extraction fails (graceful degradation).
+    /// </summary>
+    public static string NormalizeCalibreKey(string rawPath)
+    {
+        if (string.IsNullOrEmpty(rawPath)) return rawPath;
+
+        try
+        {
+            // gdrive:// paths cannot be normalized without manifest context —
+            // these should always use BuildCalibreKey at scan time instead.
+            if (rawPath.StartsWith("gdrive://")) return rawPath;
+
+            // content:// URIs (Android SAF) — try to extract from the encoded path.
+            // Typical SAF URI contains the display path segments URL-encoded.
+            if (rawPath.StartsWith("content://"))
+            {
+                return TryExtractCalibreKeyFromUri(rawPath) ?? rawPath;
+            }
+
+            // Regular filesystem path (Windows or Linux):
+            // e.g. "C:\Users\...\Calibre Library\Ray Newton\Book Title (17)\file.epub"
+            // or   "/home/user/Calibre Library/Ray Newton/Book Title (17)/file.epub"
+            // We need the last 3 segments: author/bookFolder/filename
+            var normalized = rawPath.Replace('\\', '/');
+            var segments = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+            if (segments.Length >= 3)
+            {
+                var author = segments[^3];
+                var bookFolder = segments[^2];
+                var fileName = segments[^1];
+                return $"{author}/{bookFolder}/{fileName}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"NormalizeCalibreKey failed for '{rawPath}': {ex.Message}");
         }
 
-        // Fallback: store as-is (e.g. if LibraryPath not set yet)
-        return fullPath.Replace('\\', '/');
+        return rawPath;
     }
 
     /// <summary>
-    /// Converts a portable relative key back to a full local path.
-    /// If the key is already absolute (legacy data), it is returned unchanged.
+    /// Try to extract author/bookFolder/filename from a content:// URI.
+    /// SAF URIs from Google Drive typically encode the path like:
+    /// content://com.google.android.apps.docs.storage/document/...%2FAuthor%2FBookFolder%2Ffile.epub
     /// </summary>
-    private static string FromPortableKey(string key)
+    private static string? TryExtractCalibreKeyFromUri(string uri)
     {
-        if (Path.IsPathRooted(key))
-            return key; // legacy absolute path — leave for now
+        try
+        {
+            // URL-decode the URI to get the display path segments
+            var decoded = Uri.UnescapeDataString(uri);
+            // Replace encoded separators and normalize
+            decoded = decoded.Replace('\\', '/');
 
-        if (!string.IsNullOrEmpty(_libraryPath))
-            return Path.Combine(_libraryPath, key.Replace('/', Path.DirectorySeparatorChar));
+            // Split on '/' and take the last 3 segments
+            var segments = decoded.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length >= 3)
+            {
+                var author = segments[^3];
+                var bookFolder = segments[^2];
+                var fileName = segments[^1];
 
-        return key;
+                // Sanity check: the last segment should have a file extension
+                if (Path.HasExtension(fileName))
+                {
+                    return $"{author}/{bookFolder}/{fileName}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"TryExtractCalibreKeyFromUri failed: {ex.Message}");
+        }
+
+        return null;
     }
-
-    /// <summary>
-    /// Converts a dictionary keyed by full paths to one keyed by portable keys.
-    /// </summary>
-    private static Dictionary<string, T> ToPortableDict<T>(Dictionary<string, T> dict) =>
-        dict.ToDictionary(kv => ToPortableKey(kv.Key), kv => kv.Value);
-
-    /// <summary>
-    /// Converts a dictionary keyed by portable keys back to full local paths.
-    /// </summary>
-    private static Dictionary<string, T> FromPortableDict<T>(Dictionary<string, T> dict) =>
-        dict.ToDictionary(kv => FromPortableKey(kv.Key), kv => kv.Value);
 
     // ── Load ──────────────────────────────────────────────────────────────────
 
@@ -170,20 +216,63 @@ public static class LibraryData
             var root = JsonSerializer.Deserialize<DataRoot>(json);
             if (root == null) return;
 
-            // Keys in JSON are portable (relative); expand to full local paths in memory
-            _fandoms = FromPortableDict(root.Fandoms ?? new());
-            _categories = FromPortableDict(root.Categories ?? new());
+            _fandoms = root.Fandoms ?? new();
+            _categories = root.Categories ?? new();
             _standaloneFandoms = new HashSet<string>(
                 root.StandaloneFandoms ?? new List<string>(),
                 StringComparer.OrdinalIgnoreCase);
-            _positions = FromPortableDict(root.Positions ?? new());
+            _positions = root.Positions ?? new();
             _theme = root.Theme ?? "Dark";
+
+            // Migrate any old platform-specific keys to normalized Calibre keys
+            MigrateKeysToNormalized();
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error loading save data: {ex}");
             ResetData();
         }
+    }
+
+    /// <summary>
+    /// One-time migration: converts any old platform-specific keys (Windows paths,
+    /// content:// URIs) to normalized Calibre keys (Author/BookFolder/file.ext).
+    /// Keys that are already normalized or can't be converted are left as-is.
+    /// </summary>
+    private static void MigrateKeysToNormalized()
+    {
+        bool changed = false;
+
+        _fandoms = MigrateDictionary(_fandoms, ref changed);
+        _categories = MigrateDictionary(_categories, ref changed);
+        _positions = MigrateDictionary(_positions, ref changed);
+
+        if (changed)
+        {
+            Debug.WriteLine("LibraryData: migrated old keys to normalized Calibre keys");
+            SaveData();
+        }
+    }
+
+    private static Dictionary<string, T> MigrateDictionary<T>(
+        Dictionary<string, T> source, ref bool changed)
+    {
+        var result = new Dictionary<string, T>();
+
+        foreach (var kvp in source)
+        {
+            var normalizedKey = NormalizeCalibreKey(kvp.Key);
+
+            // If the key changed, we're migrating
+            if (normalizedKey != kvp.Key)
+                changed = true;
+
+            // Use the normalized key; if there's a collision, keep the first one
+            if (!result.ContainsKey(normalizedKey))
+                result[normalizedKey] = kvp.Value;
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -221,6 +310,9 @@ public static class LibraryData
                 _libraryPath = legacyRoot.LibraryPath;
 
             Debug.WriteLine("Migrated legacy library-data.json");
+
+            // Normalize keys during legacy migration as well
+            MigrateKeysToNormalized();
 
             // Write to new locations
             SaveBootstrap();
@@ -282,11 +374,10 @@ public static class LibraryData
 
             var root = new DataRoot
             {
-                // Convert full local paths to portable relative keys before writing
-                Fandoms = ToPortableDict(_fandoms),
-                Categories = ToPortableDict(_categories),
+                Fandoms = _fandoms,
+                Categories = _categories,
                 StandaloneFandoms = _standaloneFandoms.OrderBy(f => f).ToList(),
-                Positions = ToPortableDict(_positions),
+                Positions = _positions,
                 Theme = _theme
             };
 
@@ -344,15 +435,19 @@ public static class LibraryData
 
     // ── Fandoms ───────────────────────────────────────────────────────────────
 
-    public static string GetFandom(string filePath)
+    /// <summary>
+    /// Gets the fandom for a book. The key should be a CalibreKey
+    /// (Author/BookFolder/filename.ext).
+    /// </summary>
+    public static string GetFandom(string calibreKey)
     {
-        try { return _fandoms.TryGetValue(filePath, out var v) ? v : ""; }
+        try { return _fandoms.TryGetValue(calibreKey, out var v) ? v : ""; }
         catch (Exception ex) { Debug.WriteLine($"Error getting fandom: {ex}"); return ""; }
     }
 
-    public static void SetFandom(string filePath, string fandom)
+    public static void SetFandom(string calibreKey, string fandom)
     {
-        try { _fandoms[filePath] = fandom; SaveData(); }
+        try { _fandoms[calibreKey] = fandom; SaveData(); }
         catch (Exception ex) { Debug.WriteLine($"Error setting fandom: {ex}"); }
     }
 
@@ -379,15 +474,15 @@ public static class LibraryData
 
     // ── Categories ────────────────────────────────────────────────────────────
 
-    public static string GetCategory(string filePath)
+    public static string GetCategory(string calibreKey)
     {
-        try { return _categories.TryGetValue(filePath, out var v) ? v : ""; }
+        try { return _categories.TryGetValue(calibreKey, out var v) ? v : ""; }
         catch (Exception ex) { Debug.WriteLine($"Error getting category: {ex}"); return ""; }
     }
 
-    public static void SetCategory(string filePath, string category)
+    public static void SetCategory(string calibreKey, string category)
     {
-        try { _categories[filePath] = category; SaveData(); }
+        try { _categories[calibreKey] = category; SaveData(); }
         catch (Exception ex) { Debug.WriteLine($"Error setting category: {ex}"); }
     }
 
@@ -406,17 +501,17 @@ public static class LibraryData
 
     // ── Reading Positions ─────────────────────────────────────────────────────
 
-    public static ReadingPosition? GetPosition(string filePath)
+    public static ReadingPosition? GetPosition(string calibreKey)
     {
-        try { return _positions.TryGetValue(filePath, out var v) ? v : null; }
+        try { return _positions.TryGetValue(calibreKey, out var v) ? v : null; }
         catch (Exception ex) { Debug.WriteLine($"Error getting position: {ex}"); return null; }
     }
 
-    public static void SetPosition(string filePath, int chapter, int page)
+    public static void SetPosition(string calibreKey, int chapter, int page)
     {
         try
         {
-            _positions[filePath] = new ReadingPosition { Chapter = chapter, Page = page };
+            _positions[calibreKey] = new ReadingPosition { Chapter = chapter, Page = page };
             SaveData();
         }
         catch (Exception ex) { Debug.WriteLine($"Error setting position: {ex}"); }

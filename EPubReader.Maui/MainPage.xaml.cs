@@ -100,7 +100,7 @@ public partial class MainPage : ContentPage
             _books = _scanner.ScanLibrary(libraryPath);
 
             foreach (var book in _books)
-                book.Category = LibraryData.GetCategory(book.LookupKey);
+                book.Category = LibraryData.GetCategory(book.CalibreKey);
         }
         catch (Exception ex)
         {
@@ -606,7 +606,7 @@ public partial class MainPage : ContentPage
 
             var category = CategoryInput.Text?.Trim() ?? "";
             _selectedBook.Category = category;
-            LibraryData.SetCategory(_selectedBook.LookupKey, category);
+            LibraryData.SetCategory(_selectedBook.CalibreKey, category);
 
             // Remember the selected book before rebuild clears it
             var savedBook = _selectedBook;
@@ -689,7 +689,7 @@ public partial class MainPage : ContentPage
 
             var fandomValue = targetFandom == Unsorted ? "" : targetFandom;
             book.Fandom = fandomValue;
-            LibraryData.SetFandom(book.LookupKey, fandomValue);
+            LibraryData.SetFandom(book.CalibreKey, fandomValue);
 
             LoadFandoms();
             if (!string.IsNullOrEmpty(_selectedFandom))

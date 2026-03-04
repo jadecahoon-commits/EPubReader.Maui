@@ -74,16 +74,18 @@ public class DriveLibraryManifest
             {
                 foreach (var file in book.Files)
                 {
-                    // Build the same portable key used by LibraryData:
-                    // "Author/BookFolder/FileName.epub"
-                    var lookupKey = $"{author.Name}/{book.FolderName}/{file.FileName}";
+                    // Build a platform-independent Calibre key from the folder structure
+                    // This matches the same key that Windows LibraryScanner produces
+                    var calibreKey = LibraryData.BuildCalibreKey(
+                        author.Name,
+                        book.FolderName ?? book.Title,  // Use FolderName if available, fall back to Title
+                        file.FileName);
 
                     books.Add(new BookItem
                     {
                         Title = book.Title,
                         Author = author.Name,
                         FilePath = DriveFilePath(file.DriveFileId),
-                        LookupKey = lookupKey,
                         FileType = file.Extension.TrimStart('.'),
                         CoverImagePath = book.CoverDriveFileId is { } coverId
                             ? DriveFilePath(coverId)
@@ -91,8 +93,9 @@ public class DriveLibraryManifest
                         Description = book.Description,
                         SeriesIndex = book.SeriesIndex,
                         IsFinished = book.IsFinished,
-                        Fandom = LibraryData.GetFandom(lookupKey),
-                        Category = LibraryData.GetCategory(lookupKey)
+                        CalibreKey = calibreKey,
+                        Fandom = LibraryData.GetFandom(calibreKey),
+                        Category = LibraryData.GetCategory(calibreKey)
                     });
                 }
             }
@@ -120,21 +123,16 @@ public class DriveAuthorEntry
 
 public class DriveBookEntry
 {
-    /// <summary>
-    /// The OPF-parsed display title (may differ from the folder name).
-    /// Used for display only — do NOT use as a LibraryData key.
-    /// </summary>
     public string Title { get; set; } = "";
-
-    /// <summary>
-    /// The exact Calibre folder name (e.g. "A Thin Flame (7)").
-    /// This is the stable identifier used to build the portable LibraryData lookup key.
-    /// </summary>
-    public string FolderName { get; set; } = "";
-
     public string? Description { get; set; }
     public float SeriesIndex { get; set; }
     public bool IsFinished { get; set; }
+
+    /// <summary>
+    /// The original folder name from Google Drive (e.g. "A Difference That Makes All The Differen (17)").
+    /// Stored so we can reconstruct the same CalibreKey that the Windows scanner would produce.
+    /// </summary>
+    public string? FolderName { get; set; }
 
     /// <summary>Drive file ID of the cover image, or null if no cover found.</summary>
     public string? CoverDriveFileId { get; set; }
