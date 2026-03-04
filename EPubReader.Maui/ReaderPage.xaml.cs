@@ -217,11 +217,22 @@ public partial class ReaderPage : ContentPage
         var html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark");
 
         ContentWebView.Source = new HtmlWebViewSource { Html = html };
+
+        // Fallback: if OnWebViewNavigated never fires, force recalculate after a delay
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(1500);
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                if (LoadingOverlay.IsVisible)
+                    await RecalculatePagesAsync();
+            });
+        });
     }
 
     private async void OnWebViewNavigated(object? sender, WebNavigatedEventArgs e)
     {
-        if (e.Result != WebNavigationResult.Success) return;
+        // proceed even on non-success — the HTML is already set, JS may still work
         await RecalculatePagesAsync();
     }
 

@@ -489,9 +489,8 @@ public partial class MainPage : ContentPage
             SelectedBookAuthor.Text = $"by {book.Author}";
             SelectedBookType.Text = book.FileType.ToUpperInvariant();
             CategoryInput.Text = book.Category;
-            SelectedBookDescription.Text = !string.IsNullOrWhiteSpace(book.Description)
-                ? book.Description
-                : "No description available.";
+            SelectedBookDescription.Text = BuildDescriptionText(book);
+
 
             DescriptionPanel.IsVisible = true;
         }
@@ -587,9 +586,8 @@ public partial class MainPage : ContentPage
             SelectedBookType.Text = book.FileType.ToUpperInvariant();
             CategoryInput.Text = book.Category;
 
-            SelectedBookDescription.Text = !string.IsNullOrWhiteSpace(book.Description)
-                ? book.Description
-                : "No description available.";
+            SelectedBookDescription.Text = BuildDescriptionText(book);
+
 
             DescriptionPanel.IsVisible = true;
         }
@@ -904,5 +902,13 @@ public partial class MainPage : ContentPage
         {
             Debug.WriteLine($"AutoSelectFandom: {ex.Message}");
         }
+    }
+
+    private static string BuildDescriptionText(BookItem book)
+    {
+        var desc = !string.IsNullOrWhiteSpace(book.Description)
+            ? book.Description
+            : "No description available.";
+        return $"{desc}\n\n📁 {book.FilePath}";
     }
 }
