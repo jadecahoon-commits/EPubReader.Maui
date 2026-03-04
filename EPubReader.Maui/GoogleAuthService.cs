@@ -593,4 +593,263 @@ public class GoogleAuthService
             return null;
         }
     }
+
+
+    // ── Add these methods to GoogleAuthService ────────────────────────────────────
+    // Place them in the "Drive folder browsing" region, after ListFoldersAsync.
+
+    // ── Drive library manifest scanning ──────────────────────────────────────
+
+    private static readonly string[] BookExtensions =
+        [".epub", ".mobi", ".azw", ".azw3", ".pdf", ".doc", ".docx", ".txt"];
+
+    private static readonly string[] ImageExtensions =
+        [".jpg", ".jpeg", ".png"];
+
+    /// <summary>
+    /// Walks the Calibre library folder on Drive (2 levels deep: author → book folder)
+    /// and builds a DriveLibraryManifest without downloading any book content.
+    /// Reports progress via the callback (message, 0–100).
+    /// </summary>
+    public async Task<DriveLibraryManifest?> ScanLibraryFolderAsync(
+        IProgress<(string Message, int Percent)>? progress = null)
+    {
+        if (!await EnsureValidTokenAsync()) return null;
+        if (string.IsNullOrEmpty(_libraryFolderId)) return null;
+
+        var service = BuildDriveService();
+        var manifest = new DriveLibraryManifest
+        {
+            RootFolderId = _libraryFolderId!,
+            LastSynced = DateTime.UtcNow
+        };
+
+        progress?.Report(("Listing author folders…", 0));
+
+        // ── Level 1: author folders ───────────────────────────────────────────
+        var authorFolders = await ListAllChildFoldersAsync(service, _libraryFolderId!);
+        int authorCount = authorFolders.Count;
+        int authorsDone = 0;
+
+        foreach (var authorFolder in authorFolders)
+        {
+            var authorEntry = new DriveAuthorEntry { Name = authorFolder.Name };
+
+            int pct = authorCount == 0 ? 50 : 5 + (authorsDone * 90 / authorCount);
+            progress?.Report(($"Scanning {authorFolder.Name}…", pct));
+
+            // ── Level 2: book folders ─────────────────────────────────────────
+            var bookFolders = await ListAllChildFoldersAsync(service, authorFolder.Id);
+
+            foreach (var bookFolder in bookFolders)
+            {
+                var bookEntry = await ScanBookFolderAsync(service, bookFolder.Id, bookFolder.Name);
+                if (bookEntry.Files.Count > 0)
+                    authorEntry.Books.Add(bookEntry);
+            }
+
+            if (authorEntry.Books.Count > 0)
+                manifest.Authors.Add(authorEntry);
+
+            authorsDone++;
+        }
+
+        progress?.Report(("Scan complete", 100));
+        return manifest;
+    }
+
+    /// <summary>
+    /// Scans a single book folder, reading file metadata (no content downloads).
+    /// Parses OPF metadata inline by downloading just the small .opf text file.
+    /// </summary>
+    private async Task<DriveBookEntry> ScanBookFolderAsync(
+        DriveService service, string folderId, string folderName)
+    {
+        var entry = new DriveBookEntry { Title = folderName };
+
+        var files = await ListAllChildFilesAsync(service, folderId);
+
+        // Identify cover, opf, and book files
+        foreach (var file in files)
+        {
+            var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+
+            if (ImageExtensions.Contains(ext) && entry.CoverDriveFileId == null)
+            {
+                entry.CoverDriveFileId = file.Id;
+            }
+            else if (ext == ".opf" && entry.OpfDriveFileId == null)
+            {
+                entry.OpfDriveFileId = file.Id;
+            }
+            else if (BookExtensions.Contains(ext))
+            {
+                entry.Files.Add(new DriveBookFile
+                {
+                    DriveFileId = file.Id,
+                    FileName = file.Name,
+                    Extension = ext
+                });
+            }
+        }
+
+        // Download and parse OPF for rich metadata (it's a tiny text file, ~2-4 KB)
+        if (entry.OpfDriveFileId != null)
+        {
+            try
+            {
+                var opfText = await DownloadFileAsTextAsync(service, entry.OpfDriveFileId);
+                if (opfText != null)
+                {
+                    var meta = ParseOpfMetadata(opfText);
+                    entry.Title = meta.Title ?? folderName;
+                    entry.Description = meta.Description;
+                    entry.SeriesIndex = meta.SeriesIndex;
+                    entry.IsFinished = meta.IsFinished;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"OPF parse error for {folderName}: {ex.Message}");
+            }
+        }
+
+        return entry;
+    }
+
+    /// <summary>
+    /// Downloads a Drive file by ID into a local file path.
+    /// Used at read-time when the user opens a book from the Drive library.
+    /// </summary>
+    public async Task<bool> DownloadFileByIdAsync(string driveFileId, string localPath)
+    {
+        try
+        {
+            if (!await EnsureValidTokenAsync()) return false;
+
+            var service = BuildDriveService();
+            Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
+
+            await using var output = File.Create(localPath);
+            var getRequest = service.Files.Get(driveFileId);
+            var result = await getRequest.DownloadAsync(output);
+            return result.Status == Google.Apis.Download.DownloadStatus.Completed;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DownloadFileById {driveFileId}: {ex.Message}");
+            return false;
+        }
+    }
+
+    // ── Internal Drive listing helpers ────────────────────────────────────────
+
+    private static async Task<List<Google.Apis.Drive.v3.Data.File>> ListAllChildFoldersAsync(
+        DriveService service, string parentId)
+    {
+        var request = service.Files.List();
+        request.Q = $"'{parentId}' in parents " +
+                    $"and mimeType = 'application/vnd.google-apps.folder' " +
+                    $"and trashed = false";
+        request.Fields = "files(id, name)";
+        request.OrderBy = "name";
+        request.PageSize = 1000;
+
+        var result = await request.ExecuteAsync();
+        return result.Files?.ToList() ?? new();
+    }
+
+    private static async Task<List<Google.Apis.Drive.v3.Data.File>> ListAllChildFilesAsync(
+        DriveService service, string parentId)
+    {
+        var request = service.Files.List();
+        request.Q = $"'{parentId}' in parents " +
+                    $"and mimeType != 'application/vnd.google-apps.folder' " +
+                    $"and trashed = false";
+        request.Fields = "files(id, name, mimeType)";
+        request.PageSize = 100;
+
+        var result = await request.ExecuteAsync();
+        return result.Files?.ToList() ?? new();
+    }
+
+    private static async Task<string?> DownloadFileAsTextAsync(DriveService service, string fileId)
+    {
+        await using var stream = new MemoryStream();
+        var getRequest = service.Files.Get(fileId);
+        var result = await getRequest.DownloadAsync(stream);
+        if (result.Status != Google.Apis.Download.DownloadStatus.Completed) return null;
+        stream.Position = 0;
+        using var reader = new StreamReader(stream);
+        return await reader.ReadToEndAsync();
+    }
+
+    // ── OPF parsing (duplicated from AndroidLibraryScanner to keep service self-contained) ──
+
+    private static (string? Title, string? Description, float SeriesIndex, bool IsFinished)
+        ParseOpfMetadata(string content)
+    {
+        var title = ExtractOpfField(content, "dc:title");
+        var description = ExtractOpfField(content, "dc:description");
+
+        if (description != null)
+        {
+            description = System.Net.WebUtility.HtmlDecode(description);
+            description = System.Text.RegularExpressions.Regex.Replace(description, "<.*?>", "");
+            if (string.IsNullOrWhiteSpace(description)) description = null;
+        }
+
+        float seriesIndex = 0f;
+        var seriesIndexStr = ExtractMetaContent(content, "calibre:series_index");
+        if (seriesIndexStr != null)
+            float.TryParse(seriesIndexStr,
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out seriesIndex);
+
+        bool isFinished = false;
+        var finishedMeta = ExtractMetaContent(content, "calibre:user_metadata:#finished");
+        if (finishedMeta != null)
+        {
+            var decoded = System.Net.WebUtility.HtmlDecode(finishedMeta);
+            var match = System.Text.RegularExpressions.Regex.Match(
+                decoded, @"""#value#""\s*:\s*(true|false|null)");
+            if (match.Success)
+                isFinished = match.Groups[1].Value == "true";
+        }
+
+        return (title, description, seriesIndex, isFinished);
+    }
+
+    private static string? ExtractOpfField(string content, string tagName)
+    {
+        var startTag = $"<{tagName}>";
+        var endTag = $"</{tagName}>";
+        var start = content.IndexOf(startTag);
+        if (start < 0) return null;
+        start += startTag.Length;
+        var end = content.IndexOf(endTag, start);
+        if (end < 0) return null;
+        var value = content[start..end].Trim();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    private static string? ExtractMetaContent(string content, string nameValue)
+    {
+        var marker = $"name=\"{nameValue}\"";
+        var idx = content.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) return null;
+        var tagStart = content.LastIndexOf('<', idx);
+        if (tagStart < 0) return null;
+        var tagEnd = content.IndexOf('>', idx);
+        if (tagEnd < 0) return null;
+        var tag = content[tagStart..tagEnd];
+        var contentMarker = "content=\"";
+        var ci = tag.IndexOf(contentMarker, StringComparison.OrdinalIgnoreCase);
+        if (ci < 0) return null;
+        ci += contentMarker.Length;
+        var ce = tag.IndexOf('"', ci);
+        if (ce < 0) return null;
+        return tag[ci..ce];
+    }
 }

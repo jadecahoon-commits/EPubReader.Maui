@@ -67,32 +67,41 @@ public partial class MainPage : ContentPage
 
     private void LoadBooks()
     {
-        var libraryPath = LibraryData.LibraryPath;
-        if (string.IsNullOrEmpty(libraryPath))
-        {
-            _books = new List<BookItem>();
-            return;
-        }
-
-        // ── Google Drive library ──────────────────────────────────────────────────
-        if (libraryPath.StartsWith(GoogleAuthService.DriveLibraryPrefix))
-        {
-            var folderId = libraryPath[GoogleAuthService.DriveLibraryPrefix.Length..];
-            _ = LoadDriveBooksAsync(folderId);
-            return;
-        }
-
-        // ── Local / SAF library ───────────────────────────────────────────────────
         try
         {
+            // ── Option 1: Drive manifest is available ─────────────────────────
+            if (DriveLibraryManifest.Exists() &&
+                !string.IsNullOrEmpty(GoogleAuthService.Instance.LibraryFolderId))
+            {
+                var manifest = DriveLibraryManifest.Load();
+                _books = manifest?.ToBookItems() ?? new List<BookItem>();
+                Debug.WriteLine($"MainPage: loaded {_books.Count} books from Drive manifest");
+                return;
+            }
+
+            // ── Option 2: Local / SAF library path ───────────────────────────
+            var libraryPath = LibraryData.LibraryPath;
+            if (string.IsNullOrEmpty(libraryPath))
+            {
+                _books = new List<BookItem>();
+                return;
+            }
+
             _books = _scanner.ScanLibrary(libraryPath);
+
             foreach (var book in _books)
                 book.Category = LibraryData.GetCategory(book.FilePath);
         }
         catch (Exception ex)
         {
             _books = new List<BookItem>();
-            Debug.WriteLine($"LoadBooks error: {ex}");
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await DisplayAlert("Error",
+                    $"Path: {LibraryData.LibraryPath}\n" +
+                    $"Exception: {ex.GetType().Name}: {ex.Message}",
+                    "OK");
+            });
         }
     }
 

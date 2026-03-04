@@ -45,29 +45,27 @@ public partial class ReaderPage : ContentPage
     {
         try
         {
-            Stream? stream = null;
-
-            // ── Drive-backed file ─────────────────────────────────────────────────
-            if (filePath.StartsWith(GoogleAuthService.DriveLibraryPrefix))
+            // If this is a Drive book, download it to local cache first
+            string resolvedPath = filePath;
+            if (DriveLibraryManifest.ParseDriveFileId(filePath) != null)
             {
-                var fileId = filePath[GoogleAuthService.DriveLibraryPrefix.Length..];
-                stream = await GoogleAuthService.Instance.OpenDriveFileStreamAsync(fileId);
-                if (stream == null)
+                StatusText.Text = "Downloading from Google Drive…";
+                LoadingOverlay.IsVisible = true;
+
+                var localPath = await DriveLibraryScanner.ResolveToLocalPathAsync(filePath);
+                if (localPath == null)
                 {
-                    StatusText.Text = "Could not download file from Google Drive.";
+                    StatusText.Text = "Failed to download book from Google Drive.";
                     return;
                 }
-            }
-            else
-            {
-                // ── Local / SAF file ──────────────────────────────────────────────
-                stream = _scanner.OpenFileStream(filePath);
+                resolvedPath = localPath;
             }
 
+            var stream = _scanner.OpenFileStream(resolvedPath);
             if (stream != null)
                 _book = await EpubReader.ReadBookAsync(stream);
             else
-                _book = await EpubReader.ReadBookAsync(filePath);
+                _book = await EpubReader.ReadBookAsync(resolvedPath);
 
             _chapters = _book.ReadingOrder
                 .OfType<EpubLocalTextContentFile>()
@@ -77,33 +75,19 @@ public partial class ReaderPage : ContentPage
             if (_chapters.Count == 0)
             {
                 StatusText.Text = "No readable content found in this ePub.";
-                LoadingOverlay.IsVisible = false;
                 return;
             }
 
-            BuildToc();
+            var savedPos = LibraryData.GetPosition(_filePath);
+            _currentChapter = Math.Clamp(savedPos?.Chapter ?? 0, 0, _chapters.Count - 1);
+            _savedPage = savedPos?.Page ?? 0;
 
-            // Set up WebView message handling
-            ContentWebView.Navigated += OnWebViewNavigated;
-            ContentWebView.Navigating += OnWebViewNavigating;
-
-            var saved = LibraryData.GetPosition(filePath);
-            if (saved != null && saved.Chapter < _chapters.Count)
-            {
-                _currentChapter = saved.Chapter;
-                _savedPage = saved.Page;
-                await ShowChapterAsync(saved.Chapter, goToLastPage: false, overridePage: saved.Page);
-            }
-            else
-            {
-                await ShowChapterAsync(0);
-            }
+            await ShowChapterAsync(_currentChapter, goToLastPage: false);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error loading epub: {ex}");
-            StatusText.Text = $"Failed to open book: {ex.Message}";
-            LoadingOverlay.IsVisible = false;
+            Debug.WriteLine($"LoadBookAsync error: {ex}");
+            StatusText.Text = $"Error loading book: {ex.Message}";
         }
     }
 

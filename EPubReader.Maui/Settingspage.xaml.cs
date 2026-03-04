@@ -365,4 +365,52 @@ public partial class SettingsPage : ContentPage
             "EPubReader",
             "library-data.json");
     }
+
+
+    private async void GoogleDriveSyncLibrary_Click(object sender, EventArgs e)
+    {
+        if (string.IsNullOrEmpty(GoogleAuthService.Instance.LibraryFolderId))
+        {
+            await DisplayAlert("No Library Selected",
+                "Please use '📁 Set Drive Library Location' to pick your Calibre library folder first.",
+                "OK");
+            return;
+        }
+
+        GoogleDriveSyncButton.IsEnabled = false;
+        ShowDriveStatus("Starting Drive library scan…");
+
+        var progress = new Progress<(string Message, int Percent)>(report =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+                ShowDriveStatus($"🔄 {report.Message} ({report.Percent}%)"));
+        });
+
+        try
+        {
+            var manifest = await GoogleAuthService.Instance.ScanLibraryFolderAsync(progress);
+
+            if (manifest == null)
+            {
+                ShowDriveStatus("✗ Scan failed — check sign-in and library folder.");
+                return;
+            }
+
+            manifest.Save();
+
+            var bookCount = manifest.Authors.Sum(a => a.Books.Count);
+            ShowDriveStatus(
+                $"✓ Synced {bookCount} books across {manifest.Authors.Count} authors. " +
+                $"Tap back to browse your library.");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GoogleDriveSyncLibrary: {ex}");
+            ShowDriveStatus($"✗ Error: {ex.Message}");
+        }
+        finally
+        {
+            GoogleDriveSyncButton.IsEnabled = true;
+        }
+    }
 }
