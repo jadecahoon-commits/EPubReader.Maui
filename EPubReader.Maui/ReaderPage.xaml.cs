@@ -437,17 +437,23 @@ public partial class ReaderPage : ContentPage
 
     private async Task NavigateNextChapterAsync()
     {
-        if (_isNavigating || _currentChapter >= _chapters.Count - 1) return;
+        if (_isNavigating) return;
+        var navEntries = _tocEntries.Where(e => e.ChapterIndex >= 0).ToList();
+        int navIndex = navEntries.FindIndex(e => e.ChapterIndex == _currentChapter);
+        if (navIndex < 0 || navIndex >= navEntries.Count - 1) return;
         _isNavigating = true;
-        try { await ShowChapterAsync(_currentChapter + 1, goToLastPage: false); }
+        try { await ShowChapterAsync(navEntries[navIndex + 1].ChapterIndex); }
         finally { _isNavigating = false; }
     }
 
     private async Task NavigatePrevChapterAsync()
     {
-        if (_isNavigating || _currentChapter <= 0) return;
+        if (_isNavigating) return;
+        var navEntries = _tocEntries.Where(e => e.ChapterIndex >= 0).ToList();
+        int navIndex = navEntries.FindIndex(e => e.ChapterIndex == _currentChapter);
+        if (navIndex <= 0) return;
         _isNavigating = true;
-        try { await ShowChapterAsync(_currentChapter - 1, goToLastPage: false); }
+        try { await ShowChapterAsync(navEntries[navIndex - 1].ChapterIndex); }
         finally { _isNavigating = false; }
     }
 
@@ -466,16 +472,18 @@ public partial class ReaderPage : ContentPage
 
     private void UpdateNavUi()
     {
-        var chapterLabel = _chapters.Count > 1
-            ? $"Ch. {_currentChapter + 1}/{_chapters.Count}  ·  "
+        var navEntries = _tocEntries.Where(e => e.ChapterIndex >= 0).ToList();
+        int navIndex = navEntries.FindIndex(e => e.ChapterIndex == _currentChapter);
+        var chapterLabel = navEntries.Count > 1
+            ? $"Ch. {Math.Max(navIndex + 1, 1)}/{navEntries.Count}  ·  "
             : "";
 
         PageIndexText.Text = _totalPages > 0
             ? $"{chapterLabel}Page {_currentPage + 1} of {_totalPages}"
             : "";
 
-        PrevChapterButton.IsEnabled = _currentChapter > 0;
-        NextChapterButton.IsEnabled = _currentChapter < _chapters.Count - 1;
+        PrevChapterButton.IsEnabled = navIndex > 0;
+        NextChapterButton.IsEnabled = navIndex < navEntries.Count - 1;
 
         StatusText.Text = _chapters.Count > 0 ? _chapters[_currentChapter].Key : "";
     }
