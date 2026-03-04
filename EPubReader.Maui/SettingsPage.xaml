@@ -198,10 +198,18 @@
       RowSpacing="8"
       IsVisible="False">
 
+                    <Button Grid.Row="1"
+        Text="⬇  Download from Drive"
+        Clicked="GoogleDriveDownload_Click"
+        BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+        TextColor="{AppThemeBinding Dark=White, Light=Black}"
+        CornerRadius="4"
+        Padding="12,8"
+        FontSize="13" />
 
 
                     <!-- Row 1: Set Calibre Library location on Drive -->
-                    <Button Grid.Row="1"
+                    <Button Grid.Row="2"
             Text="📁  Set Drive Library Location"
             Clicked="GoogleDrivePickFolder_Click"
             BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
@@ -210,6 +218,7 @@
             Padding="12,8"
             FontSize="13"
             HorizontalOptions="Fill" />
+
                 </Grid>
 
                 <!-- Row 2: Sync manifest from Drive -->

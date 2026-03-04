@@ -28,7 +28,6 @@ public class AndroidLibraryScanner : ILibraryScanner
 
         // SAF content:// URI — use ContentResolver
         var books = new List<BookItem>();
-        // ... rest of the existing SAF code
 
         try
         {
@@ -111,11 +110,16 @@ public class AndroidLibraryScanner : ILibraryScanner
                                     var ext = Path.GetExtension(file.DisplayName).ToLowerInvariant();
                                     if (BookExtensions.Contains(ext))
                                     {
+                                        // Build the portable key that matches what Windows produces:
+                                        // "Author/BookFolder/FileName.epub"
+                                        var lookupKey = $"{author}/{folderTitle}/{file.DisplayName}";
+
                                         books.Add(new BookItem
                                         {
                                             Title = title ?? folderTitle,
                                             Author = author,
                                             FilePath = file.Uri,
+                                            LookupKey = lookupKey,
                                             FileType = ext.TrimStart('.'),
                                             CoverImagePath = coverUri,
                                             Description = description,
@@ -147,17 +151,19 @@ public class AndroidLibraryScanner : ILibraryScanner
             Debug.WriteLine($"Error scanning library: {ex}");
         }
 
-        // Apply saved fandom data
+        // Apply saved fandom and category data using the portable LookupKey
         foreach (var book in books)
         {
             try
             {
-                book.Fandom = LibraryData.GetFandom(book.FilePath);
+                book.Fandom = LibraryData.GetFandom(book.LookupKey);
+                book.Category = LibraryData.GetCategory(book.LookupKey);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error loading fandom for {book.FilePath}: {ex.Message}");
+                Debug.WriteLine($"Error loading data for {book.LookupKey}: {ex.Message}");
                 book.Fandom = "";
+                book.Category = "";
             }
         }
 
@@ -236,8 +242,8 @@ public class AndroidLibraryScanner : ILibraryScanner
         string[] projection =
         [
             DocumentsContract.Document.ColumnDocumentId,
-        DocumentsContract.Document.ColumnDisplayName,
-        DocumentsContract.Document.ColumnMimeType
+            DocumentsContract.Document.ColumnDisplayName,
+            DocumentsContract.Document.ColumnMimeType
         ];
 
         try

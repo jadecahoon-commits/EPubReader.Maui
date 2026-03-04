@@ -665,7 +665,7 @@ public class GoogleAuthService
     private async Task<DriveBookEntry> ScanBookFolderAsync(
         DriveService service, string folderId, string folderName)
     {
-        var entry = new DriveBookEntry { Title = folderName };
+        var entry = new DriveBookEntry { Title = folderName, FolderName = folderName };
 
         var files = await ListAllChildFilesAsync(service, folderId);
 

@@ -74,11 +74,16 @@ public class DriveLibraryManifest
             {
                 foreach (var file in book.Files)
                 {
+                    // Build the same portable key used by LibraryData:
+                    // "Author/BookFolder/FileName.epub"
+                    var lookupKey = $"{author.Name}/{book.FolderName}/{file.FileName}";
+
                     books.Add(new BookItem
                     {
                         Title = book.Title,
                         Author = author.Name,
                         FilePath = DriveFilePath(file.DriveFileId),
+                        LookupKey = lookupKey,
                         FileType = file.Extension.TrimStart('.'),
                         CoverImagePath = book.CoverDriveFileId is { } coverId
                             ? DriveFilePath(coverId)
@@ -86,8 +91,8 @@ public class DriveLibraryManifest
                         Description = book.Description,
                         SeriesIndex = book.SeriesIndex,
                         IsFinished = book.IsFinished,
-                        Fandom = LibraryData.GetFandom(DriveFilePath(file.DriveFileId)),
-                        Category = LibraryData.GetCategory(DriveFilePath(file.DriveFileId))
+                        Fandom = LibraryData.GetFandom(lookupKey),
+                        Category = LibraryData.GetCategory(lookupKey)
                     });
                 }
             }
@@ -115,7 +120,18 @@ public class DriveAuthorEntry
 
 public class DriveBookEntry
 {
+    /// <summary>
+    /// The OPF-parsed display title (may differ from the folder name).
+    /// Used for display only — do NOT use as a LibraryData key.
+    /// </summary>
     public string Title { get; set; } = "";
+
+    /// <summary>
+    /// The exact Calibre folder name (e.g. "A Thin Flame (7)").
+    /// This is the stable identifier used to build the portable LibraryData lookup key.
+    /// </summary>
+    public string FolderName { get; set; } = "";
+
     public string? Description { get; set; }
     public float SeriesIndex { get; set; }
     public bool IsFinished { get; set; }

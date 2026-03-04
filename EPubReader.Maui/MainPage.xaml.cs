@@ -59,23 +59,33 @@ public partial class MainPage : ContentPage
         {
             await DisplayAlert("Permission needed", "Storage access is required to read your library.", "OK");
         }
+
+        // Ensure GoogleAuthService has loaded its SecureStorage state before
+        // LoadBooks checks LibraryFolderId. SettingsPage also calls this, but
+        // MainPage can't rely on SettingsPage having been opened first.
+        await GoogleAuthService.Instance.InitAsync();
 #endif
 
         LoadBooks();
         LoadFandoms();
+
+        // Auto-select the first fandom so books are visible without a manual tap
+        AutoSelectFandom();
     }
 
     private void LoadBooks()
     {
         try
         {
-            // ── Option 1: Drive manifest is available ─────────────────────────
+            // ── Option 1: Drive manifest ──────────────────────────────────────
+            // LibraryFolderId is now guaranteed to be loaded (InitAsync called above).
             if (DriveLibraryManifest.Exists() &&
                 !string.IsNullOrEmpty(GoogleAuthService.Instance.LibraryFolderId))
             {
                 var manifest = DriveLibraryManifest.Load();
                 _books = manifest?.ToBookItems() ?? new List<BookItem>();
-                Debug.WriteLine($"MainPage: loaded {_books.Count} books from Drive manifest");
+                Debug.WriteLine($"MainPage: loaded {_books.Count} books from Drive manifest " +
+                                $"(last synced: {manifest?.LastSynced:u})");
                 return;
             }
 
@@ -90,20 +100,20 @@ public partial class MainPage : ContentPage
             _books = _scanner.ScanLibrary(libraryPath);
 
             foreach (var book in _books)
-                book.Category = LibraryData.GetCategory(book.FilePath);
+                book.Category = LibraryData.GetCategory(book.LookupKey);
         }
         catch (Exception ex)
         {
             _books = new List<BookItem>();
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                await DisplayAlert("Error",
-                    $"Path: {LibraryData.LibraryPath}\n" +
-                    $"Exception: {ex.GetType().Name}: {ex.Message}",
-                    "OK");
+                await DisplayAlert("Error loading library",
+                    $"Exception: {ex.GetType().Name}: {ex.Message}", "OK");
             });
         }
     }
+
+
 
     private async Task LoadDriveBooksAsync(string folderId)
     {
@@ -596,7 +606,7 @@ public partial class MainPage : ContentPage
 
             var category = CategoryInput.Text?.Trim() ?? "";
             _selectedBook.Category = category;
-            LibraryData.SetCategory(_selectedBook.FilePath, category);
+            LibraryData.SetCategory(_selectedBook.LookupKey, category);
 
             // Remember the selected book before rebuild clears it
             var savedBook = _selectedBook;
@@ -679,7 +689,7 @@ public partial class MainPage : ContentPage
 
             var fandomValue = targetFandom == Unsorted ? "" : targetFandom;
             book.Fandom = fandomValue;
-            LibraryData.SetFandom(book.FilePath, fandomValue);
+            LibraryData.SetFandom(book.LookupKey, fandomValue);
 
             LoadFandoms();
             if (!string.IsNullOrEmpty(_selectedFandom))
@@ -791,6 +801,42 @@ public partial class MainPage : ContentPage
         {
             Debug.WriteLine($"Error adding fandom (Android): {ex}");
             ShowError("Failed to add fandom", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// After LoadFandoms() populates the list, pick a fandom to show books immediately
+    /// rather than waiting for the user to tap one.
+    /// Prefers the previously-selected fandom, then "Unsorted", then whatever is first.
+    /// </summary>
+    private void AutoSelectFandom()
+    {
+        try
+        {
+            var fandoms = FandomList.ItemsSource as IList<string>;
+            if (fandoms == null || fandoms.Count == 0) return;
+
+            string? toSelect = null;
+
+            // Re-select whatever was selected before (e.g. after returning from Settings)
+            if (!string.IsNullOrEmpty(_selectedFandom) && fandoms.Contains(_selectedFandom))
+                toSelect = _selectedFandom;
+            // Otherwise prefer "Unsorted" (where un-categorised books land)
+            else if (fandoms.Contains(Unsorted))
+                toSelect = Unsorted;
+            // Otherwise just take the first entry
+            else
+                toSelect = fandoms[0];
+
+            FandomList.SelectedItem = toSelect;
+            FandomListAndroid.SelectedItem = toSelect;
+            _selectedFandom = toSelect;
+            SelectedFandomHeader.Text = toSelect;
+            RebuildCategorySections(toSelect);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"AutoSelectFandom: {ex.Message}");
         }
     }
 }

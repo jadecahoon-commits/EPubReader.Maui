@@ -367,6 +367,8 @@ public partial class SettingsPage : ContentPage
     }
 
 
+    // In SettingsPage.xaml.cs, replace the GoogleDriveSyncLibrary_Click method with this:
+
     private async void GoogleDriveSyncLibrary_Click(object sender, EventArgs e)
     {
         if (string.IsNullOrEmpty(GoogleAuthService.Instance.LibraryFolderId))
@@ -397,6 +399,26 @@ public partial class SettingsPage : ContentPage
             }
 
             manifest.Save();
+
+#if ANDROID
+            try
+            {
+                var debugPath = System.IO.Path.Combine(
+                    System.IO.Path.GetDirectoryName(
+                        ResolveLocalDataFile() ?? "") ?? "",
+                    "drive-manifest-debug.json");
+
+                var json = System.Text.Json.JsonSerializer.Serialize(
+                    manifest,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(debugPath, json);
+                Debug.WriteLine($"Debug manifest written to {debugPath}");
+            }
+            catch (Exception dbgEx)
+            {
+                Debug.WriteLine($"Failed to write debug manifest: {dbgEx.Message}");
+            }
+#endif
 
             var bookCount = manifest.Authors.Sum(a => a.Books.Count);
             ShowDriveStatus(

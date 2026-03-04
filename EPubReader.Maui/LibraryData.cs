@@ -77,6 +77,56 @@ public static class LibraryData
         }
     }
 
+    // ── Portable key helpers ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Converts a full local file path to a portable relative key for storage.
+    /// The key is relative to LibraryPath, using forward slashes so it is
+    /// identical on Windows and Android.
+    /// </summary>
+    private static string ToPortableKey(string fullPath)
+    {
+        if (!string.IsNullOrEmpty(_libraryPath))
+        {
+            // Normalize both to forward-slash for comparison
+            var normFull = fullPath.Replace('\\', '/');
+            var normRoot = _libraryPath.Replace('\\', '/').TrimEnd('/') + '/';
+
+            if (normFull.StartsWith(normRoot, StringComparison.OrdinalIgnoreCase))
+                return normFull[normRoot.Length..]; // already forward-slash
+        }
+
+        // Fallback: store as-is (e.g. if LibraryPath not set yet)
+        return fullPath.Replace('\\', '/');
+    }
+
+    /// <summary>
+    /// Converts a portable relative key back to a full local path.
+    /// If the key is already absolute (legacy data), it is returned unchanged.
+    /// </summary>
+    private static string FromPortableKey(string key)
+    {
+        if (Path.IsPathRooted(key))
+            return key; // legacy absolute path — leave for now
+
+        if (!string.IsNullOrEmpty(_libraryPath))
+            return Path.Combine(_libraryPath, key.Replace('/', Path.DirectorySeparatorChar));
+
+        return key;
+    }
+
+    /// <summary>
+    /// Converts a dictionary keyed by full paths to one keyed by portable keys.
+    /// </summary>
+    private static Dictionary<string, T> ToPortableDict<T>(Dictionary<string, T> dict) =>
+        dict.ToDictionary(kv => ToPortableKey(kv.Key), kv => kv.Value);
+
+    /// <summary>
+    /// Converts a dictionary keyed by portable keys back to full local paths.
+    /// </summary>
+    private static Dictionary<string, T> FromPortableDict<T>(Dictionary<string, T> dict) =>
+        dict.ToDictionary(kv => FromPortableKey(kv.Key), kv => kv.Value);
+
     // ── Load ──────────────────────────────────────────────────────────────────
 
     public static void Load()
@@ -120,12 +170,13 @@ public static class LibraryData
             var root = JsonSerializer.Deserialize<DataRoot>(json);
             if (root == null) return;
 
-            _fandoms = root.Fandoms ?? new();
-            _categories = root.Categories ?? new();
+            // Keys in JSON are portable (relative); expand to full local paths in memory
+            _fandoms = FromPortableDict(root.Fandoms ?? new());
+            _categories = FromPortableDict(root.Categories ?? new());
             _standaloneFandoms = new HashSet<string>(
                 root.StandaloneFandoms ?? new List<string>(),
                 StringComparer.OrdinalIgnoreCase);
-            _positions = root.Positions ?? new();
+            _positions = FromPortableDict(root.Positions ?? new());
             _theme = root.Theme ?? "Dark";
         }
         catch (Exception ex)
@@ -231,10 +282,11 @@ public static class LibraryData
 
             var root = new DataRoot
             {
-                Fandoms = _fandoms,
-                Categories = _categories,
+                // Convert full local paths to portable relative keys before writing
+                Fandoms = ToPortableDict(_fandoms),
+                Categories = ToPortableDict(_categories),
                 StandaloneFandoms = _standaloneFandoms.OrderBy(f => f).ToList(),
-                Positions = _positions,
+                Positions = ToPortableDict(_positions),
                 Theme = _theme
             };
 
