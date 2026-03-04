@@ -555,6 +555,23 @@ public partial class ReaderPage : ContentPage
 <meta charset=""utf-8"" />
 <meta name=""viewport"" content=""width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"" />
 <style>
+:root {{
+    color-scheme: only light;
+  }}
+  
+  @media (prefers-color-scheme: dark) {{
+    html, body, #pager, #content {{
+      background: {bg} !important;
+      color: {fg} !important;
+    }}
+  }}
+  
+  @media (prefers-color-scheme: light) {{
+    html, body, #pager, #content {{
+      background: {bg} !important;
+      color: {fg} !important;
+    }}
+  }}
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 
   html, body {{
