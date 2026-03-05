@@ -532,15 +532,13 @@ public partial class ReaderPage : ContentPage
 
     private static string BuildPagedHtml(string rawHtml, bool isDark)
     {
-        //var bg = isDark ? "#0f0f0f" : "#f5f5f5";
-        //var fg = isDark ? "#DCDCDC" : "#1a1a1a";
+        var bg = isDark ? "#0f0f0f" : "#f5f5f5";
+        var fg = "#DE3163";
         var headingColor = isDark ? "#FFFFFF" : "#000000";
-        var bg = "#f5f5f5";
-        var fg = "#000000";
 
         var linkColor = "#E50914";
-        var hrColor = isDark ? "#2A2A2A" : "#DDDDDD";
-        var blockquoteColor = isDark ? "#AAAAAA" : "#555555";
+        var hrColor = "#DE3163";
+        var blockquoteColor = "#DE3163";
 
         // Extract body content
         var body = rawHtml;

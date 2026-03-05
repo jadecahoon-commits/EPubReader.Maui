@@ -21,8 +21,9 @@
 
 
             <HorizontalStackLayout Grid.Column="1"
-                                   Spacing="8"
-                                   VerticalOptions="Center">
+                       Spacing="8"
+                       VerticalOptions="Center"
+                       IsClippedToBounds="False">
 
                 <!-- TOC button -->
                 <Button x:Name="TocButton"
@@ -49,7 +50,8 @@
                        FontSize="12"
                        TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
                        VerticalOptions="Center"
-                       MinimumWidthRequest="120"
+                       MinimumWidthRequest="80"
+                       MaximumWidthRequest="160"
                        HorizontalTextAlignment="Center" />
 
                 <!-- Next chapter (▶▶) — keyboard: Right arrow on top bar -->
@@ -67,6 +69,7 @@
                 <Button x:Name="ThemeButton"
                         Text="◑"
                         Clicked="ThemeButton_Click"
+                        InputTransparent="False"
                         BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
                         TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
                         WidthRequest="36" HeightRequest="36"
