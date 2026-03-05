@@ -443,35 +443,15 @@ public partial class SettingsPage : ContentPage
 
     private void UpdateEmailFields()
     {
-        // If user has a saved personal email, show it.
-        if (!string.IsNullOrWhiteSpace(LibraryData.PersonalEmail))
-        {
-            PersonalEmailEntry.Text = LibraryData.PersonalEmail;
-        }
-        else
-        {
-            // Auto-populate from Google Drive sign-in if available
-            var googleEmail = GoogleAuthService.Instance.UserEmail;
-            if (!string.IsNullOrWhiteSpace(googleEmail))
-                PersonalEmailEntry.Text = googleEmail;
-        }
 
         KindleEmailEntry.Text = LibraryData.KindleEmail ?? "";
     }
 
     private async void SaveEmail_Click(object? sender, EventArgs e)
     {
-        var personal = PersonalEmailEntry.Text?.Trim() ?? "";
         var kindle = KindleEmailEntry.Text?.Trim() ?? "";
 
-        // Basic validation — just check there's an @ if non-empty
-        if (!string.IsNullOrEmpty(personal) && !personal.Contains('@'))
-        {
-            EmailSaveStatusLabel.IsVisible = true;
-            EmailSaveStatusLabel.TextColor = Color.FromArgb("#E50914");
-            EmailSaveStatusLabel.Text = "✗ Personal email doesn't look valid.";
-            return;
-        }
+        
         if (!string.IsNullOrEmpty(kindle) && !kindle.Contains('@'))
         {
             EmailSaveStatusLabel.IsVisible = true;
@@ -480,7 +460,6 @@ public partial class SettingsPage : ContentPage
             return;
         }
 
-        LibraryData.PersonalEmail = personal;
         LibraryData.KindleEmail = kindle;
 
         EmailSaveStatusLabel.IsVisible = true;

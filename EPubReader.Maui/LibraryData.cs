@@ -33,7 +33,6 @@ public static class LibraryData
         public List<string> StandaloneFandoms { get; set; } = new();
         public Dictionary<string, ReadingPosition> Positions { get; set; } = new();
         public string Theme { get; set; } = "Dark";
-        public string PersonalEmail { get; set; } = "";
         public string KindleEmail { get; set; } = "";
     }
 
@@ -46,7 +45,6 @@ public static class LibraryData
     private static string _theme = "Dark";
     private static string _libraryPath = ""; 
     private static string _saveDataPath = "";
-    private static string _personalEmail = "";
     private static string _kindleEmail = "";
 
     public class ReadingPosition
@@ -80,11 +78,6 @@ public static class LibraryData
         }
     }
 
-    public static string PersonalEmail
-    {
-        get => _personalEmail;
-        set { _personalEmail = value; SaveData(); }
-    }
 
     public static string KindleEmail
     {
@@ -238,7 +231,6 @@ public static class LibraryData
                 StringComparer.OrdinalIgnoreCase);
             _positions = root.Positions ?? new();
             _theme = root.Theme ?? "Dark"; 
-            _personalEmail = root.PersonalEmail ?? "";
             _kindleEmail = root.KindleEmail ?? "";
 
             // Migrate any old platform-specific keys to normalized Calibre keys
@@ -448,7 +440,6 @@ public static class LibraryData
         _standaloneFandoms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         _positions = new();
         _theme = "Dark";
-        _personalEmail = "";
         _kindleEmail = "";
     }
 

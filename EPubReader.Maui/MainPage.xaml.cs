@@ -697,10 +697,102 @@ public partial class MainPage : ContentPage
 
 
     private async void SendToKindle_Click(object? sender, EventArgs e)
+{
+    var kindleEmail = LibraryData.KindleEmail?.Trim();
+
+    if (string.IsNullOrEmpty(kindleEmail))
     {
-        // TODO: implement email send
-        await DisplayAlert("Send to Kindle", "Coming soon!", "OK");
+        await DisplayAlert("Send to Kindle",
+            "No Send-to-Kindle address saved. Add one in Settings.", "OK");
+        return;
     }
+
+    if (_selectedBook == null)
+    {
+        await DisplayAlert("Send to Kindle", "No book selected.", "OK");
+        return;
+    }
+
+    try
+    {
+        string? filePath = _selectedBook.FilePath;
+
+        // Resolve gdrive:// paths to a local cached copy first
+        if (DriveLibraryManifest.ParseDriveFileId(filePath) != null)
+        {
+            filePath = await DriveLibraryScanner.ResolveToLocalPathAsync(filePath);
+            if (filePath == null)
+            {
+                await DisplayAlert("Send to Kindle",
+                    "Failed to download the book from Google Drive. Check your connection and try again.", "OK");
+                return;
+            }
+        }
+
+#if ANDROID
+        await SendToKindleAndroidAsync(filePath, kindleEmail, _selectedBook);
+#else
+            var message = new EmailMessage
+        {
+            Subject = Path.GetFileNameWithoutExtension(_selectedBook.FilePath),
+            Body = "Sent from your eBook library.",
+            To = new List<string> { kindleEmail },
+            Attachments = new List<EmailAttachment> { new EmailAttachment(filePath) }
+        };
+        await Email.Default.ComposeAsync(message);
+#endif
+    }
+    catch (Exception ex)
+    {
+        await DisplayAlert("Send to Kindle", $"Failed: {ex.Message}", "OK");
+    }
+}
+
+#if ANDROID
+private async Task SendToKindleAndroidAsync(string cachedFilePath, string kindleEmail, BookItem book)
+{
+    try
+    {
+        // Derive the original filename from CalibreKey (last segment: "filename.epub")
+        var originalFileName = Path.GetFileName(book.CalibreKey);
+
+        // If CalibreKey is unavailable or doesn't look like a filename, fall back to title
+        if (string.IsNullOrEmpty(originalFileName) || !originalFileName.Contains('.'))
+        {
+            var ext = Path.GetExtension(cachedFilePath);
+            var safeTitle = string.Concat(book.Title.Select(c =>
+                Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+            originalFileName = safeTitle + ext;
+        }
+
+        // Copy cached file to a friendly-named temp path so the attachment shows correctly
+        var friendlyPath = Path.Combine(FileSystem.CacheDirectory, originalFileName);
+        File.Copy(cachedFilePath, friendlyPath, overwrite: true);
+
+        var file = new Java.IO.File(friendlyPath);
+        var uri = AndroidX.Core.Content.FileProvider.GetUriForFile(
+            Android.App.Application.Context,
+            $"{Android.App.Application.Context.PackageName}.fileprovider",
+            file);
+
+        var intent = new Android.Content.Intent(Android.Content.Intent.ActionSend);
+        intent.SetType("application/epub+zip");
+        intent.PutExtra(Android.Content.Intent.ExtraEmail, new[] { kindleEmail });
+        intent.PutExtra(Android.Content.Intent.ExtraSubject, book.Title);
+        intent.PutExtra(Android.Content.Intent.ExtraStream, uri);
+        intent.AddFlags(Android.Content.ActivityFlags.GrantReadUriPermission);
+
+        var chooser = Android.Content.Intent.CreateChooser(intent, "Send to Kindle via…");
+        var activity = Platform.CurrentActivity
+            ?? throw new InvalidOperationException("No current Activity");
+        activity.StartActivity(chooser);
+    }
+    catch (Exception ex)
+    {
+        await DisplayAlert("Send to Kindle", $"Failed to open email app: {ex.Message}", "OK");
+    }
+}
+#endif
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

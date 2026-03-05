@@ -64,16 +64,6 @@
                         FontSize="10"
                         Padding="0" />
 
-                <!-- Theme toggle -->
-                <Button x:Name="ThemeButton"
-                        Text="◑"
-                        Clicked="ThemeButton_Click"
-                        InputTransparent="False"
-                        BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
-                        TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                        WidthRequest="36" HeightRequest="36"
-                        CornerRadius="4"
-                        Padding="0" />
             </HorizontalStackLayout>
         </Grid>
 

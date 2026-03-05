@@ -253,25 +253,6 @@
 
                 <VerticalStackLayout Spacing="14">
 
-                    <!-- Personal email -->
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="Your email address"
-               FontSize="13"
-               FontAttributes="Bold"
-               TextColor="{AppThemeBinding Dark=White, Light=Black}" />
-                        <Label Text="Used as the sender when emailing books to your Kindle."
-               FontSize="12"
-               TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-               LineBreakMode="WordWrap" />
-                        <Entry x:Name="PersonalEmailEntry"
-               Placeholder="you@example.com"
-               Keyboard="Email"
-               BackgroundColor="{AppThemeBinding Dark=#1e1e1e, Light=#ffffff}"
-               TextColor="{AppThemeBinding Dark=White, Light=Black}"
-               PlaceholderColor="{AppThemeBinding Dark=#555555, Light=#aaaaaa}"
-               FontSize="14" />
-                    </VerticalStackLayout>
-
                     <!-- Send-to-Kindle email -->
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Send-to-Kindle address"
