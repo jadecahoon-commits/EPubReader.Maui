@@ -21,9 +21,8 @@
 
 
             <HorizontalStackLayout Grid.Column="1"
-                       Spacing="8"
-                       VerticalOptions="Center"
-                       IsClippedToBounds="False">
+                                   Spacing="8"
+                                   VerticalOptions="Center">
 
                 <!-- TOC button -->
                 <Button x:Name="TocButton"
@@ -47,12 +46,12 @@
                         Padding="0" />
 
                 <Label x:Name="PageIndexText"
-                       FontSize="12"
-                       TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                       VerticalOptions="Center"
-                       MinimumWidthRequest="80"
-                       MaximumWidthRequest="160"
-                       HorizontalTextAlignment="Center" />
+               FontSize="12"
+               TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+               VerticalOptions="Center"
+               MinimumWidthRequest="80"
+               MaximumWidthRequest="160"
+               HorizontalTextAlignment="Center" />
 
                 <!-- Next chapter (▶▶) — keyboard: Right arrow on top bar -->
                 <Button x:Name="NextChapterButton"
@@ -94,11 +93,9 @@
                 They are InputTransparent except for the tap gesture itself,
                 so text selection etc. still work in the WebView.
                 Width is set to 15% of screen so they don't eat too much content.
-            -->
             <Grid ColumnDefinitions="0.15*,0.7*,0.15*"
-                  InputTransparent="False">
+                  InputTransparent="True">
 
-                <!-- Left tap zone → prev page -->
                 <BoxView Grid.Column="0"
                          Color="Transparent"
                          InputTransparent="False">
@@ -107,12 +104,10 @@
                     </BoxView.GestureRecognizers>
                 </BoxView>
 
-                <!-- Centre — fully transparent so WebView gets all input -->
                 <BoxView Grid.Column="1"
                          Color="Transparent"
                          InputTransparent="True" />
 
-                <!-- Right tap zone → next page -->
                 <BoxView Grid.Column="2"
                          Color="Transparent"
                          InputTransparent="False">
@@ -120,11 +115,12 @@
                         <TapGestureRecognizer Tapped="RightTap_Tapped" />
                     </BoxView.GestureRecognizers>
                 </BoxView>
-            </Grid>
+        </Grid>
+        -->
 
-            <!-- Loading overlay -->
+        <!-- Loading overlay -->
             <Grid x:Name="LoadingOverlay"
-                  BackgroundColor="{AppThemeBinding Dark=#0f0f0f, Light=#f5f5f5}"
+                  BackgroundColor="Transparent"
                   IsVisible="True">
                 <VerticalStackLayout HorizontalOptions="Center"
                                      VerticalOptions="Center"

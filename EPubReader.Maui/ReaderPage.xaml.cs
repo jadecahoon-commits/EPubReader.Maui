@@ -519,7 +519,7 @@ public partial class ReaderPage : ContentPage
 
         StatusText.Text = _chapters.Count > 0 ? _chapters[_currentChapter].Key : "";
     }
-
+    // @\ GO_CTRL-ALT-DELETE YOUR_FACE.PNG
     private void SavePosition()
     {
         if (!string.IsNullOrEmpty(_filePath))
@@ -533,7 +533,7 @@ public partial class ReaderPage : ContentPage
     private static string BuildPagedHtml(string rawHtml, bool isDark)
     {
         var bg = isDark ? "#0f0f0f" : "#f5f5f5";
-        var fg = "#DE3163";
+        var fg = isDark ? "#DCDCDC" : "#1a1a1a";
         var headingColor = isDark ? "#FFFFFF" : "#000000";
 
         var linkColor = "#E50914";
@@ -555,22 +555,22 @@ public partial class ReaderPage : ContentPage
 <head>
 <meta charset=""utf-8"" />
 <meta name=""viewport"" content=""width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"" />
+<meta name=""color-scheme"" content=""only light"" />
 
 <style>
-
-/* Prevent forced colors */
-* {{
-    forced-color-adjust: none !important;
-}}
+:root {{color - scheme: only light ;}}
   
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  * {{ 
+box-sizing: border-box; margin: 0; padding: 0; 
+ forced-color-adjust: none ;
+}}
 
  html, body {{
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: {bg} !important;
-    color: {fg} !important;
+    background-color: {bg};
+    color: {fg};
 }}
 
 #pager {{
@@ -579,7 +579,7 @@ public partial class ReaderPage : ContentPage
     column-fill: auto;
     height: 100vh;
     width: max-content;
-    background-color: {bg} !important;
+    background-color: {bg} ;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }}
 
@@ -589,8 +589,8 @@ public partial class ReaderPage : ContentPage
     font-family: Georgia, 'Times New Roman', serif;
     font-size: 17px;
     line-height: 1.75;
-    color: {fg} !important;
-    background-color: {bg} !important;
+    color: {fg} ;
+    background-color: {bg} ;
 }}
 
 
@@ -612,17 +612,17 @@ public partial class ReaderPage : ContentPage
   #pager {{ animation: fadeIn 0.2s ease; }}
 
   h1, h2, h3, h4, h5, h6 {{
-    color: {headingColor} !important;
+    color: {headingColor} ;
     margin: 1em 0 0.5em;
     font-family: Georgia, serif;
   }}
   p {{ margin-bottom: 0.9em; }}
-  a {{ color: {linkColor} !important; text-decoration: none; }}
+  a {{ color: {linkColor} ; text-decoration: none; }}
   hr {{ border: none; border-top: 1px solid {hrColor}; margin: 1.5em 0; }}
   blockquote {{
     border-left: 3px solid {hrColor};
     padding-left: 1em;
-    color: {blockquoteColor} !important;
+    color: {blockquoteColor} ;
     font-style: italic;
     margin: 1em 0;
   }}
@@ -631,8 +631,8 @@ public partial class ReaderPage : ContentPage
   /* Override common epub style patterns */
   .calibre, .calibre1, .calibre2, .calibre3,
   div, span, p, section, article {{
-    color: inherit !important;
-    background: transparent !important;
+    color: {fg} ;
+    background: transparent ;
   }}
 </style>
 </head>
