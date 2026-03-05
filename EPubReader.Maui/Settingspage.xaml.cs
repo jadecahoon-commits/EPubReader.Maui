@@ -462,6 +462,20 @@ public partial class SettingsPage : ContentPage
 
         LibraryData.KindleEmail = kindle;
 
+        if (GoogleAuthService.Instance.IsSignedIn)
+        {
+            var localFile = ResolveLocalDataFile();
+            if (localFile != null && File.Exists(localFile))
+                await GoogleAuthService.Instance.UploadLibraryDataAsync(localFile);
+        }
+
+        EmailSaveStatusLabel.IsVisible = true;
+        EmailSaveStatusLabel.TextColor = Color.FromArgb("#4caf50");
+        EmailSaveStatusLabel.Text = "✓ Saved";
+
+        await Task.Delay(3000);
+        EmailSaveStatusLabel.IsVisible = false;
+
         EmailSaveStatusLabel.IsVisible = true;
         EmailSaveStatusLabel.TextColor = Color.FromArgb("#4caf50");
         EmailSaveStatusLabel.Text = "✓ Saved";

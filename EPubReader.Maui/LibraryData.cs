@@ -18,6 +18,9 @@ public static class LibraryData
         "bootstrap.json"
     );
 
+    // ── Background Drive upload (debounced) ───────────────────────────────────
+    private static CancellationTokenSource? _uploadDebounce;
+
     private class BootstrapRoot
     {
         public string LibraryPath { get; set; } = "";
@@ -387,15 +390,51 @@ public static class LibraryData
                 Categories = _categories,
                 StandaloneFandoms = _standaloneFandoms.OrderBy(f => f).ToList(),
                 Positions = _positions,
-                Theme = _theme
+                Theme = _theme,
+                KindleEmail = _kindleEmail 
             };
 
             var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(dataFile, json);
+
+            // Fire-and-forget upload to Drive, debounced so rapid saves coalesce
+            _ = ScheduleDriveUploadAsync(dataFile);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error saving data: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Waits 2 seconds after the last save, then uploads to Drive in the background.
+    /// Multiple rapid saves (e.g. reading position updates) coalesce into one upload.
+    /// </summary>
+    private static async Task ScheduleDriveUploadAsync(string localFile)
+    {
+        _uploadDebounce?.Cancel();
+        _uploadDebounce = new CancellationTokenSource();
+        var token = _uploadDebounce.Token;
+
+        try
+        {
+            await Task.Delay(2000, token);
+
+            if (!GoogleAuthService.Instance.IsSignedIn) return;
+            if (!File.Exists(localFile)) return;
+
+            var ok = await GoogleAuthService.Instance.UploadLibraryDataAsync(localFile);
+            Debug.WriteLine(ok
+                ? "LibraryData: background Drive upload succeeded"
+                : "LibraryData: background Drive upload failed");
+        }
+        catch (TaskCanceledException)
+        {
+            // A newer save came in — this upload was superseded, that's fine
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"LibraryData: background Drive upload error: {ex.Message}");
         }
     }
 

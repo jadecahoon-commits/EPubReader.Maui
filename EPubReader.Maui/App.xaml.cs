@@ -6,8 +6,7 @@
         {
             InitializeComponent();
             LibraryData.Load();
-            //UserAppTheme = LibraryData.Theme == "Dark" ? AppTheme.Dark : AppTheme.Light;
-            Application.Current.UserAppTheme = AppTheme.Light; // or AppTheme.Dark
+            UserAppTheme = LibraryData.Theme == "Dark" ? AppTheme.Dark : AppTheme.Light;
 
 
             // Restore Google Drive token from SecureStorage in the background
