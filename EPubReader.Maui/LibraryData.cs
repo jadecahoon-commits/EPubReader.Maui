@@ -33,6 +33,8 @@ public static class LibraryData
         public List<string> StandaloneFandoms { get; set; } = new();
         public Dictionary<string, ReadingPosition> Positions { get; set; } = new();
         public string Theme { get; set; } = "Dark";
+        public string PersonalEmail { get; set; } = "";
+        public string KindleEmail { get; set; } = "";
     }
 
     // ── In-memory state ───────────────────────────────────────────────────────
@@ -42,8 +44,10 @@ public static class LibraryData
     private static HashSet<string> _standaloneFandoms = new(StringComparer.OrdinalIgnoreCase);
     private static Dictionary<string, ReadingPosition> _positions = new();
     private static string _theme = "Dark";
-    private static string _libraryPath = "";
+    private static string _libraryPath = ""; 
     private static string _saveDataPath = "";
+    private static string _personalEmail = "";
+    private static string _kindleEmail = "";
 
     public class ReadingPosition
     {
@@ -72,9 +76,20 @@ public static class LibraryData
         {
             _saveDataPath = value;
             SaveBootstrap();
-            // Immediately write current state to the new location
             SaveData();
         }
+    }
+
+    public static string PersonalEmail
+    {
+        get => _personalEmail;
+        set { _personalEmail = value; SaveData(); }
+    }
+
+    public static string KindleEmail
+    {
+        get => _kindleEmail;
+        set { _kindleEmail = value; SaveData(); }
     }
 
     // ── Calibre key normalization ─────────────────────────────────────────────
@@ -222,7 +237,9 @@ public static class LibraryData
                 root.StandaloneFandoms ?? new List<string>(),
                 StringComparer.OrdinalIgnoreCase);
             _positions = root.Positions ?? new();
-            _theme = root.Theme ?? "Dark";
+            _theme = root.Theme ?? "Dark"; 
+            _personalEmail = root.PersonalEmail ?? "";
+            _kindleEmail = root.KindleEmail ?? "";
 
             // Migrate any old platform-specific keys to normalized Calibre keys
             MigrateKeysToNormalized();
@@ -431,6 +448,8 @@ public static class LibraryData
         _standaloneFandoms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         _positions = new();
         _theme = "Dark";
+        _personalEmail = "";
+        _kindleEmail = "";
     }
 
     // ── Fandoms ───────────────────────────────────────────────────────────────

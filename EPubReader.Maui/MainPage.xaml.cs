@@ -695,6 +695,13 @@ public partial class MainPage : ContentPage
         await Navigation.PushAsync(new SettingsPage());
     }
 
+
+    private async void SendToKindle_Click(object? sender, EventArgs e)
+    {
+        // TODO: implement email send
+        await DisplayAlert("Send to Kindle", "Coming soon!", "OK");
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async void ShowError(string title, string detail)

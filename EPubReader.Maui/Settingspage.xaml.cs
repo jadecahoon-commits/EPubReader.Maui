@@ -10,6 +10,8 @@ public partial class SettingsPage : ContentPage
         InitializeComponent();
         DarkModeToggle.IsToggled = LibraryData.Theme == "Dark";
         UpdatePathLabels();
+         UpdateEmailFields();
+
         // Restore Google Drive sign-in state from SecureStorage
 #if ANDROID
         _ = InitGoogleDriveAsync();
@@ -188,6 +190,8 @@ public partial class SettingsPage : ContentPage
         GoogleDriveStatusLabel.Text = isSignedIn
             ? $"Signed in as {GoogleAuthService.Instance.UserEmail}"
             : "Not signed in";
+        UpdateEmailFields();
+
 
         GoogleDriveButton.Text = isSignedIn ? "Sign Out" : "Sign In";
         GoogleDriveButton.BackgroundColor = isSignedIn
@@ -434,5 +438,57 @@ public partial class SettingsPage : ContentPage
         {
             GoogleDriveSyncButton.IsEnabled = true;
         }
+    }
+
+
+    private void UpdateEmailFields()
+    {
+        // If user has a saved personal email, show it.
+        if (!string.IsNullOrWhiteSpace(LibraryData.PersonalEmail))
+        {
+            PersonalEmailEntry.Text = LibraryData.PersonalEmail;
+        }
+        else
+        {
+            // Auto-populate from Google Drive sign-in if available
+            var googleEmail = GoogleAuthService.Instance.UserEmail;
+            if (!string.IsNullOrWhiteSpace(googleEmail))
+                PersonalEmailEntry.Text = googleEmail;
+        }
+
+        KindleEmailEntry.Text = LibraryData.KindleEmail ?? "";
+    }
+
+    private async void SaveEmail_Click(object? sender, EventArgs e)
+    {
+        var personal = PersonalEmailEntry.Text?.Trim() ?? "";
+        var kindle = KindleEmailEntry.Text?.Trim() ?? "";
+
+        // Basic validation — just check there's an @ if non-empty
+        if (!string.IsNullOrEmpty(personal) && !personal.Contains('@'))
+        {
+            EmailSaveStatusLabel.IsVisible = true;
+            EmailSaveStatusLabel.TextColor = Color.FromArgb("#E50914");
+            EmailSaveStatusLabel.Text = "✗ Personal email doesn't look valid.";
+            return;
+        }
+        if (!string.IsNullOrEmpty(kindle) && !kindle.Contains('@'))
+        {
+            EmailSaveStatusLabel.IsVisible = true;
+            EmailSaveStatusLabel.TextColor = Color.FromArgb("#E50914");
+            EmailSaveStatusLabel.Text = "✗ Kindle address doesn't look valid.";
+            return;
+        }
+
+        LibraryData.PersonalEmail = personal;
+        LibraryData.KindleEmail = kindle;
+
+        EmailSaveStatusLabel.IsVisible = true;
+        EmailSaveStatusLabel.TextColor = Color.FromArgb("#4caf50");
+        EmailSaveStatusLabel.Text = "✓ Saved";
+
+        // Auto-hide the status after 3 seconds
+        await Task.Delay(3000);
+        EmailSaveStatusLabel.IsVisible = false;
     }
 }

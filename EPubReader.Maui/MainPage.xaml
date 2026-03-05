@@ -199,29 +199,38 @@
 
                 <!-- Action row -->
                 <Grid Grid.Row="4"
-                      ColumnDefinitions="*,Auto,Auto,Auto"
-                      Margin="0,12,0,0">
+      ColumnDefinitions="*,Auto,Auto,Auto"
+      Margin="0,12,0,0">
                     <Entry x:Name="CategoryInput"
-                           Placeholder="Category..."
-                           BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#ffffff}"
-                           TextColor="{AppThemeBinding Dark=White, Light=Black}"
-                           FontSize="13" />
+           Placeholder="Category..."
+           BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#ffffff}"
+           TextColor="{AppThemeBinding Dark=White, Light=Black}"
+           FontSize="13" />
                     <Button Grid.Column="1"
-                            Text="Save"
-                            Clicked="SaveCategory_Click"
-                            BackgroundColor="#E50914"
-                            TextColor="White"
-                            CornerRadius="4"
-                            Padding="12,0"
-                            Margin="8,0,0,0" />
+            Text="Save"
+            Clicked="SaveCategory_Click"
+            BackgroundColor="#E50914"
+            TextColor="White"
+            CornerRadius="4"
+            Padding="12,0"
+            Margin="8,0,0,0" />
                     <Button Grid.Column="2"
-                            Text="▶  Read"
-                            Clicked="OpenBook_Click"
-                            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
-                            TextColor="{AppThemeBinding Dark=White, Light=Black}"
-                            CornerRadius="4"
-                            Padding="12,0"
-                            Margin="8,0,0,0" />
+            Text="▶  Read"
+            Clicked="OpenBook_Click"
+            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+            TextColor="{AppThemeBinding Dark=White, Light=Black}"
+            CornerRadius="4"
+            Padding="12,0"
+            Margin="8,0,0,0" />
+                    <Button Grid.Column="3"
+            x:Name="SendToKindleButton"
+            Text="📨  Kindle"
+            Clicked="SendToKindle_Click"
+            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+            TextColor="{AppThemeBinding Dark=White, Light=Black}"
+            CornerRadius="4"
+            Padding="12,0"
+            Margin="8,0,0,0" />
                 </Grid>
             </Grid>
         </Grid>
