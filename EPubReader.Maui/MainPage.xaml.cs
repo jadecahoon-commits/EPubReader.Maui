@@ -557,9 +557,6 @@ public partial class MainPage : ContentPage
             if (_lastSelectedCard != null)
             {
                 _lastSelectedCard.ScaleTo(1.0, 200, Easing.CubicOut);
-                _lastSelectedCard.StrokeThickness = 1;
-                _lastSelectedCard.SetAppThemeColor(Border.StrokeProperty,
-                    Color.FromArgb("#e0e0e0"), Color.FromArgb("#3a3a3a"));
                 _lastSelectedCard = null;
             }
 
@@ -574,8 +571,6 @@ public partial class MainPage : ContentPage
                 if (card != null)
                 {
                     card.ScaleTo(1.2, 250, Easing.CubicOut);
-                    card.Stroke = Color.FromArgb("#E50914");
-                    card.StrokeThickness = 2;
                     _lastSelectedCard = card;
                 }
             }

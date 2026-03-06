@@ -6,9 +6,29 @@ public partial class ReaderSettingsPage : ContentPage
     private readonly Action _onSettingsChanged;
 
     private const string PresetDefault = "#DCDCDC";
-    private const string PresetWhite   = "#FFFFFF";
-    private const string PresetSepia   = "#C8B89A";
-    private const string PresetGreen   = "#B5C9A8";
+    private const string PresetWhite = "#FFFFFF";
+    private const string PresetSepia = "#C8B89A";
+    private const string PresetGreen = "#B5C9A8";
+
+    // Curated list of fonts reliably available on Windows 10/11
+    public static readonly List<string> AvailableFonts = new()
+    {
+        "Georgia",
+        "Times New Roman",
+        "Palatino Linotype",
+        "Book Antiqua",
+        "Garamond",
+        "Cambria",
+        "Constantia",
+        "Arial",
+        "Calibri",
+        "Trebuchet MS",
+        "Verdana",
+        "Tahoma",
+        "Segoe UI",
+        "Courier New",
+        "Consolas",
+    };
 
     public ReaderSettingsPage(Action onSettingsChanged)
     {
@@ -21,11 +41,20 @@ public partial class ReaderSettingsPage : ContentPage
         FontSizeValueLabel.Text = LibraryData.ReaderFontSize.ToString();
         CustomColorEntry.Text = _selectedColor;
         RefreshPresetBorders(_selectedColor);
+
+        // Populate font picker
+        FontPicker.ItemsSource = AvailableFonts;
+        var currentFont = LibraryData.ReaderFont;
+        var idx = AvailableFonts.IndexOf(currentFont);
+        FontPicker.SelectedIndex = idx >= 0 ? idx : 0;
     }
 
-    // ── Close — save and trigger re-render ────────────────────────────────────
+    // ── Save & close ──────────────────────────────────────────────────────────
 
-    private async void Close_Click(object? sender, EventArgs e)
+    private async void Close_Click(object? sender, EventArgs e) => await SaveAndClose();
+    private async void Save_Click(object? sender, EventArgs e) => await SaveAndClose();
+
+    private async Task SaveAndClose()
     {
         LibraryData.ReaderFontSize = (int)Math.Round(FontSizeSlider.Value);
 
@@ -33,6 +62,9 @@ public partial class ReaderSettingsPage : ContentPage
         if (entryHex.Length == 7 && entryHex.StartsWith('#'))
             _selectedColor = entryHex;
         LibraryData.ReaderTextColor = _selectedColor;
+
+        if (FontPicker.SelectedItem is string font)
+            LibraryData.ReaderFont = font;
 
         _onSettingsChanged();
 
@@ -76,8 +108,8 @@ public partial class ReaderSettingsPage : ContentPage
         var active = Color.FromArgb("#E50914");
 
         ColorPreset1.Stroke = activeHex.Equals(PresetDefault, StringComparison.OrdinalIgnoreCase) ? active : inactive;
-        ColorPreset2.Stroke = activeHex.Equals(PresetWhite,   StringComparison.OrdinalIgnoreCase) ? active : inactive;
-        ColorPreset3.Stroke = activeHex.Equals(PresetSepia,   StringComparison.OrdinalIgnoreCase) ? active : inactive;
-        ColorPreset4.Stroke = activeHex.Equals(PresetGreen,   StringComparison.OrdinalIgnoreCase) ? active : inactive;
+        ColorPreset2.Stroke = activeHex.Equals(PresetWhite, StringComparison.OrdinalIgnoreCase) ? active : inactive;
+        ColorPreset3.Stroke = activeHex.Equals(PresetSepia, StringComparison.OrdinalIgnoreCase) ? active : inactive;
+        ColorPreset4.Stroke = activeHex.Equals(PresetGreen, StringComparison.OrdinalIgnoreCase) ? active : inactive;
     }
 }

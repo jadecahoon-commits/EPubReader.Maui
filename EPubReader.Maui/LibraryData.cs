@@ -39,6 +39,7 @@ public static class LibraryData
         public string KindleEmail { get; set; } = "";
         public int    ReaderFontSize  { get; set; } = 17;
         public string ReaderTextColor { get; set; } = "#DCDCDC";
+        public string ReaderFont { get; set; } = "Georgia";
     }
 
     // ── In-memory state ───────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ public static class LibraryData
     private static string _kindleEmail = "";
     private static int _readerFontSize = 17;
     private static string _readerTextColor = "#DCDCDC";
+    private static string _readerFont = "Georgia";
 
     public class ReadingPosition
     {
@@ -103,6 +105,13 @@ public static class LibraryData
          get => _readerTextColor;
          set { _readerTextColor = value; SaveData(); }
      }
+
+    public static string ReaderFont
+    {
+        get => _readerFont;
+        set { _readerFont = value; SaveData(); }
+    }
+
 
     // ── Calibre key normalization ─────────────────────────────────────────────
 
@@ -253,6 +262,8 @@ public static class LibraryData
             _kindleEmail = root.KindleEmail ?? "";
             _readerFontSize = root.ReaderFontSize;
             _readerTextColor = root.ReaderTextColor ?? "#DCDCDC";
+            _readerFont = root.ReaderFont ?? "Georgia";
+
 
             // Migrate any old platform-specific keys to normalized Calibre keys
             MigrateKeysToNormalized();
@@ -412,6 +423,7 @@ public static class LibraryData
                 KindleEmail = _kindleEmail,
                 ReaderFontSize = _readerFontSize,
                 ReaderTextColor = _readerTextColor,
+                ReaderFont = _readerFont
             };
 
             var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });

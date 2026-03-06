@@ -541,8 +541,6 @@ public partial class ReaderPage : ContentPage
 
     // ── HTML builder ──────────────────────────────────────────────────────────
 
-    // Replace the BuildPagedHtml method in ReaderPage.xaml.cs with this version:
-
     private static string BuildPagedHtml(string rawHtml, bool isDark, string? epubLinkedCss = null)
     {
         var bg = isDark ? "#0f0f0f" : "#f5f5f5";
@@ -617,7 +615,7 @@ public partial class ReaderPage : ContentPage
 * {{
   box-sizing: border-box; margin: 0; padding: 0;
   forced-color-adjust: none;
-font-style: inherit;
+  font-style: inherit;
   font-weight: inherit;
 }}
 
@@ -642,7 +640,7 @@ html, body {{
 #content {{
   width: 100vw;
   padding: 32px 20px 40px;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: '{LibraryData.ReaderFont}', Georgia, serif;
   font-size: {LibraryData.ReaderFontSize}px;
   line-height: 1.75;
   color: {fg};
