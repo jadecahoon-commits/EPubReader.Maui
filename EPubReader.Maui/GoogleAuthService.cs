@@ -96,7 +96,6 @@ public class GoogleAuthService
             var state = Guid.NewGuid().ToString("N");
             var scopes = Uri.EscapeDataString(
                 "https://www.googleapis.com/auth/drive.file " +
-                "https://www.googleapis.com/auth/drive.readonly " +
                 "https://www.googleapis.com/auth/userinfo.email");
 
             var authUrl =
@@ -188,10 +187,9 @@ public class GoogleAuthService
     {
         try
         {
-            if (!await EnsureValidTokenAsync()) return false;
-            if (!File.Exists(localFilePath))
+            if (!await EnsureValidTokenAsync())
             {
-                Debug.WriteLine("UploadLibraryData: local file not found");
+                Debug.WriteLine("UploadLibraryData: token validation failed");
                 return false;
             }
 
@@ -295,9 +293,7 @@ public class GoogleAuthService
 
     private DriveService BuildDriveService()
     {
-        var credential = GoogleCredential
-            .FromAccessToken(_accessToken)
-            .CreateScoped(DriveService.Scope.DriveFile, DriveService.Scope.DriveReadonly);
+        var credential = GoogleCredential.FromAccessToken(_accessToken);
 
         return new DriveService(new BaseClientService.Initializer
         {
