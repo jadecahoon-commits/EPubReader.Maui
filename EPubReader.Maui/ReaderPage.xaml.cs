@@ -367,7 +367,7 @@ public partial class ReaderPage : ContentPage
         var chapter = _chapters[chapterIndex];
         ContentWebView.Source = new HtmlWebViewSource
         {
-            Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark")
+            Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark", GetBookCss())
         };
 
         // Fallback: if OnWebViewNavigated never fires, force recalculate
@@ -617,6 +617,8 @@ public partial class ReaderPage : ContentPage
 * {{
   box-sizing: border-box; margin: 0; padding: 0;
   forced-color-adjust: none;
+font-style: inherit;
+  font-weight: inherit;
 }}
 
 html, body {{
