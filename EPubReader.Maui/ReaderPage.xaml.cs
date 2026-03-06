@@ -328,7 +328,7 @@ public partial class ReaderPage : ContentPage
         var chapter = _chapters[_currentChapter];
         ContentWebView.Source = new HtmlWebViewSource
         {
-            Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark")
+            Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark", GetBookCss())
         };
     }
 
@@ -345,7 +345,7 @@ public partial class ReaderPage : ContentPage
          var chapter = _chapters[_currentChapter];
          ContentWebView.Source = new HtmlWebViewSource
          {
-             Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark")
+             Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark", GetBookCss())
          };
      }
 
@@ -543,7 +543,7 @@ public partial class ReaderPage : ContentPage
 
     // Replace the BuildPagedHtml method in ReaderPage.xaml.cs with this version:
 
-    private static string BuildPagedHtml(string rawHtml, bool isDark)
+    private static string BuildPagedHtml(string rawHtml, bool isDark, string? epubLinkedCss = null)
     {
         var bg = isDark ? "#0f0f0f" : "#f5f5f5";
         var fg = !string.IsNullOrEmpty(LibraryData.ReaderTextColor)
@@ -574,6 +574,19 @@ public partial class ReaderPage : ContentPage
                 epubStyles.AppendLine(headContent[innerStart..styleClose]);
                 searchFrom = styleClose + 8;
             }
+        }
+
+        // After the existing epubStyles extraction block, add:
+        if (!string.IsNullOrWhiteSpace(epubLinkedCss))
+        {
+            // Strip color/background declarations so epub CSS doesn't override our theme,
+            // but preserve font-style, font-weight, font-variant, text-decoration etc.
+            var filtered = System.Text.RegularExpressions.Regex.Replace(
+                epubLinkedCss,
+                @"(?<![a-z-])(?:color|background(?:-color)?)\s*:[^;]+;",
+                "",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            epubStyles.AppendLine(filtered);
         }
 
         // Extract body content
@@ -762,5 +775,18 @@ span {{ color: inherit; background: transparent; }}
 </script>
 </body>
 </html>";
+    }
+
+
+    private string GetBookCss()
+    {
+        if (_book == null) return "";
+        var sb = new System.Text.StringBuilder();
+        foreach (var cssFile in _book.Content.Css.Local)
+        {
+            if (!string.IsNullOrWhiteSpace(cssFile.Content))
+                sb.AppendLine(cssFile.Content);
+        }
+        return sb.ToString();
     }
 }
