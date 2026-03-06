@@ -547,13 +547,34 @@ public partial class ReaderPage : ContentPage
     {
         var bg = isDark ? "#0f0f0f" : "#f5f5f5";
         var fg = !string.IsNullOrEmpty(LibraryData.ReaderTextColor)
-         ? LibraryData.ReaderTextColor
-         : (isDark ? "#DCDCDC" : "#1a1a1a");
+            ? LibraryData.ReaderTextColor
+            : (isDark ? "#DCDCDC" : "#1a1a1a");
         var headingColor = isDark ? "#FFFFFF" : "#000000";
 
         var linkColor = "#E50914";
         var hrColor = "#DE3163";
         var blockquoteColor = "#DE3163";
+
+        // Extract epub's own <style> blocks from <head> so class-based
+        // formatting (e.g. .italic, .calibre2) is preserved
+        var epubStyles = new System.Text.StringBuilder();
+        var headStart = rawHtml.IndexOf("<head", StringComparison.OrdinalIgnoreCase);
+        var headEnd = rawHtml.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+        if (headStart >= 0 && headEnd > headStart)
+        {
+            var headContent = rawHtml[headStart..headEnd];
+            var searchFrom = 0;
+            while (true)
+            {
+                var styleOpen = headContent.IndexOf("<style", searchFrom, StringComparison.OrdinalIgnoreCase);
+                if (styleOpen < 0) break;
+                var styleClose = headContent.IndexOf("</style>", styleOpen, StringComparison.OrdinalIgnoreCase);
+                if (styleClose < 0) break;
+                var innerStart = headContent.IndexOf('>', styleOpen) + 1;
+                epubStyles.AppendLine(headContent[innerStart..styleClose]);
+                searchFrom = styleClose + 8;
+            }
+        }
 
         // Extract body content
         var body = rawHtml;
@@ -573,81 +594,92 @@ public partial class ReaderPage : ContentPage
 <meta name=""color-scheme"" content=""only light"" />
 
 <style>
-:root {{color - scheme: only light ;}}
-  
-  * {{ 
-box-sizing: border-box; margin: 0; padding: 0; 
- forced-color-adjust: none ;
+/* ── Epub's own styles (class-based formatting) ── */
+{epubStyles}
+</style>
+
+<style>
+:root {{ color-scheme: only light; }}
+
+* {{
+  box-sizing: border-box; margin: 0; padding: 0;
+  forced-color-adjust: none;
 }}
 
- html, body {{
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: {bg};
-    color: {fg};
+html, body {{
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: {bg};
+  color: {fg};
 }}
 
 #pager {{
-    column-width: 100vw;
-    column-gap: 0;
-    column-fill: auto;
-    height: 100vh;
-    width: max-content;
-    background-color: {bg} ;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  column-width: 100vw;
+  column-gap: 0;
+  column-fill: auto;
+  height: 100vh;
+  width: max-content;
+  background-color: {bg};
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }}
 
 #content {{
-    width: 100vw;
-    padding: 32px 20px 40px;
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: {LibraryData.ReaderFontSize}px;
-    line-height: 1.75;
-    color: {fg} ;
-    background-color: {bg} ;
+  width: 100vw;
+  padding: 32px 20px 40px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: {LibraryData.ReaderFontSize}px;
+  line-height: 1.75;
+  color: {fg};
+  background-color: {bg};
 }}
 
+@media (min-width: 600px) {{
+  #content {{ padding: 40px 60px 48px; }}
+}}
 
-  /* Responsive padding for larger screens */
-  @media (min-width: 600px) {{
-    #content {{
-      padding: 40px 60px 48px;
-    }}
-  }}
+@media (min-width: 900px) {{
+  #content {{ padding: 48px 120px 56px; }}
+}}
 
-  @media (min-width: 900px) {{
-    #content {{
-      padding: 48px 120px 56px;
-    }}
-  }}
+@keyframes fadeIn {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
+#pager {{ animation: fadeIn 0.2s ease; }}
 
-  @keyframes fadeIn {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
-  #pager {{ animation: fadeIn 0.2s ease; }}
+h1, h2, h3, h4, h5, h6 {{
+  color: {headingColor};
+  margin: 1em 0 0.5em;
+  font-family: Georgia, serif;
+}}
+p {{ margin-bottom: 0.9em; }}
+a {{ color: {linkColor}; text-decoration: none; }}
+hr {{ border: none; border-top: 1px solid {hrColor}; margin: 1.5em 0; }}
+blockquote {{
+  border-left: 3px solid {hrColor};
+  padding-left: 1em;
+  color: {blockquoteColor};
+  font-style: italic;
+  margin: 1em 0;
+}}
+img {{ max-width: 100%; height: auto; }}
 
-  h1, h2, h3, h4, h5, h6 {{
-    color: {headingColor} ;
-    margin: 1em 0 0.5em;
-    font-family: Georgia, serif;
-  }}
-  p {{ margin-bottom: 0.9em; }}
-  a {{ color: {linkColor} ; text-decoration: none; }}
-  hr {{ border: none; border-top: 1px solid {hrColor}; margin: 1.5em 0; }}
-  blockquote {{
-    border-left: 3px solid {hrColor};
-    padding-left: 1em;
-    color: {blockquoteColor} ;
-    font-style: italic;
-    margin: 1em 0;
-  }}
-  img {{ max-width: 100%; height: auto; }}
+/* Override epub color/background without touching font styling */
+.calibre, .calibre1, .calibre2, .calibre3,
+div, p, section, article {{
+  color: {fg};
+  background: transparent;
+}}
 
-  /* Override common epub style patterns */
-  .calibre, .calibre1, .calibre2, .calibre3,
-  div, span, p, section, article {{
-    color: {fg} ;
-    background: transparent ;
-  }}
+/* ── Explicitly preserve inline formatting ── */
+em, i, cite {{ font-style: italic; }}
+strong, b {{ font-weight: bold; }}
+u {{ text-decoration: underline; }}
+s, del, strike {{ text-decoration: line-through; }}
+sup {{ vertical-align: super; font-size: 0.75em; }}
+sub {{ vertical-align: sub; font-size: 0.75em; }}
+
+/* Epub often uses span with inline style or class for italics/bold — don't nuke them */
+span {{ color: inherit; background: transparent; }}
+
 </style>
 </head>
 <body>
@@ -660,14 +692,10 @@ box-sizing: border-box; margin: 0; padding: 0;
   var totalPages = 0;
   var curPage    = 0;
 
-  // ── Layout ──────────────────────────────────────────────────────────────
-
   function computeLayout() {{
     pageWidth  = window.innerWidth;
     totalPages = Math.max(1, Math.round(pager.scrollWidth / pageWidth));
   }}
-
-  // ── Public API (called from C# via EvaluateJavaScriptAsync) ─────────────
 
   window.__getTotalPages = function() {{
     computeLayout();
@@ -681,75 +709,51 @@ box-sizing: border-box; margin: 0; padding: 0;
     return curPage;
   }};
 
-  // ── Input helpers ────────────────────────────────────────────────────────
-
   function emitNav(cmd) {{
-    // Use a tiny iframe trick so navigation doesn't replace the page on some WebViews
     var iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     iframe.src = 'reader://nav/' + cmd;
     document.body.appendChild(iframe);
     setTimeout(function() {{ document.body.removeChild(iframe); }}, 200);
-    // Fallback: also try direct location change (MAUI intercepts Navigating)
     try {{ window.location.href = 'reader://nav/' + cmd; }} catch(ex) {{}}
   }}
-
-  // ── Keyboard: arrow keys → page nav ─────────────────────────────────────
 
   document.addEventListener('keydown', function(e) {{
     if (e.key === 'ArrowRight') {{ e.preventDefault(); emitNav('next'); }}
     else if (e.key === 'ArrowLeft') {{ e.preventDefault(); emitNav('prev'); }}
   }});
 
-  // ── Click / tap: left 15% → prev, right 15% → next ──────────────────────
-
   var tapStartX = -1;
-
-  document.addEventListener('pointerdown', function(e) {{
-    tapStartX = e.clientX;
-  }});
-
+  document.addEventListener('pointerdown', function(e) {{ tapStartX = e.clientX; }});
   document.addEventListener('pointerup', function(e) {{
     if (tapStartX < 0) return;
     var dx = Math.abs(e.clientX - tapStartX);
     tapStartX = -1;
-
     if (dx > 20) return;
-
     var target = e.target;
     while (target && target !== document.body) {{
       if (target.tagName === 'A') return;
       target = target.parentElement;
     }}
-
-    var x     = e.clientX;
-    var width = window.innerWidth;
-
-    if (x < width * 0.15)      emitNav('prev');
+    var x = e.clientX, width = window.innerWidth;
+    if (x < width * 0.15) emitNav('prev');
     else if (x > width * 0.85) emitNav('next');
   }});
 
-  // ── Touch fallback (Android WebView may not fire pointer events) ─────────
-
   var touchStartX = -1;
-
   document.addEventListener('touchstart', function(e) {{
     touchStartX = e.touches[0].clientX;
   }}, {{ passive: true }});
-
   document.addEventListener('touchend', function(e) {{
     if (touchStartX < 0) return;
     var dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
     touchStartX = -1;
     if (dx > 20) return;
-
-    var x     = e.changedTouches[0].clientX;
-    var width = window.innerWidth;
-    if (x < width * 0.15)      emitNav('prev');
+    var x = e.changedTouches[0].clientX, width = window.innerWidth;
+    if (x < width * 0.15) emitNav('prev');
     else if (x > width * 0.85) emitNav('next');
   }});
 
-  // ── Recompute on resize ──────────────────────────────────────────────────
   window.addEventListener('resize', function() {{
     computeLayout();
     window.__goToPage(curPage);
