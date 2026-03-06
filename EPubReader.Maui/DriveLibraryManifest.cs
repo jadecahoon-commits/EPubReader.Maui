@@ -88,7 +88,7 @@ public class DriveLibraryManifest
                         FilePath = DriveFilePath(file.DriveFileId, file.Extension),
                         FileType = file.Extension.TrimStart('.'),
                         CoverImagePath = book.CoverDriveFileId is { } coverId
-                            ? DriveFilePath(file.DriveFileId, file.Extension)
+                            ? DriveFilePath(coverId, book.CoverExtension ?? ".jpg")
                             : null,
                         Description = book.Description,
                         SeriesIndex = book.SeriesIndex,
@@ -133,6 +133,8 @@ public class DriveBookEntry
     public string? Description { get; set; }
     public float SeriesIndex { get; set; }
     public bool IsFinished { get; set; }
+
+    public string? CoverExtension { get; set; }
 
     /// <summary>
     /// The original folder name from Google Drive (e.g. "A Difference That Makes All The Differen (17)").

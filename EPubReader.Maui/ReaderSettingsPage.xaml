@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="EPubReader.Maui.ReaderSettingsPage"
+             Title="Reader Settings"
+             NavigationPage.HasNavigationBar="False">
+
+    <Grid BackgroundColor="{AppThemeBinding Dark=#0f0f0f, Light=#f5f5f5}" Padding="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,24">
+            <Label Text="Reader Settings"
+                   FontSize="26"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                   VerticalOptions="Center" />
+            <Button Grid.Column="1"
+                    Text="✕"
+                    Clicked="Close_Click"
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+                    WidthRequest="36" HeightRequest="36"
+                    CornerRadius="4"
+                    Padding="0" />
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="24">
+
+                <!-- ── TEXT ── -->
+                <Label Text="TEXT"
+                       FontSize="11"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                       CharacterSpacing="3" />
+
+                <!-- Font size -->
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Font Size"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                               VerticalOptions="Center" />
+                        <Label x:Name="FontSizeValueLabel"
+                               Grid.Column="1"
+                               Text="17"
+                               FontSize="14"
+                               TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+                               VerticalOptions="Center" />
+                    </Grid>
+                    <Slider x:Name="FontSizeSlider"
+                            Minimum="12"
+                            Maximum="28"
+                            Value="17"
+                            ValueChanged="FontSizeSlider_ValueChanged"
+                            ThumbColor="#E50914"
+                            MinimumTrackColor="#E50914"
+                            MaximumTrackColor="{AppThemeBinding Dark=#444444, Light=#cccccc}" />
+                    <Grid ColumnDefinitions="*,*,*">
+                        <Label Text="Small" FontSize="11"
+                               TextColor="{AppThemeBinding Dark=#666666, Light=#aaaaaa}"
+                               HorizontalOptions="Start" />
+                        <Label Text="Default" FontSize="11"
+                               TextColor="{AppThemeBinding Dark=#666666, Light=#aaaaaa}"
+                               HorizontalOptions="Center" />
+                        <Label Text="Large" FontSize="11"
+                               TextColor="{AppThemeBinding Dark=#666666, Light=#aaaaaa}"
+                               HorizontalOptions="End" />
+                    </Grid>
+                </VerticalStackLayout>
+
+                <BoxView HeightRequest="1"
+                         Color="{AppThemeBinding Dark=#333333, Light=#dddddd}" />
+
+                <!-- Text color -->
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Text Color"
+                           FontSize="15"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Dark=White, Light=Black}" />
+                    <Label Text="Choose a preset or enter a custom hex value"
+                           FontSize="12"
+                           TextColor="{AppThemeBinding Dark=#888888, Light=#999999}" />
+
+                    <!-- Presets -->
+                    <HorizontalStackLayout Spacing="12">
+
+                        <!-- Warm white -->
+                        <VerticalStackLayout Spacing="6" HorizontalOptions="Start">
+                            <Border x:Name="ColorPreset1"
+                                    BackgroundColor="#DCDCDC"
+                                    StrokeShape="RoundRectangle 6"
+                                    StrokeThickness="2"
+                                    Stroke="#E50914"
+                                    WidthRequest="44" HeightRequest="44">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="ColorPreset_Tapped" CommandParameter="#DCDCDC" />
+                                </Border.GestureRecognizers>
+                            </Border>
+                            <Label Text="Default" FontSize="10"
+                                   TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                                   HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+
+                        <!-- Pure white -->
+                        <VerticalStackLayout Spacing="6" HorizontalOptions="Start">
+                            <Border x:Name="ColorPreset2"
+                                    BackgroundColor="#FFFFFF"
+                                    StrokeShape="RoundRectangle 6"
+                                    StrokeThickness="2"
+                                    Stroke="{AppThemeBinding Dark=#444444, Light=#cccccc}"
+                                    WidthRequest="44" HeightRequest="44">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="ColorPreset_Tapped" CommandParameter="#FFFFFF" />
+                                </Border.GestureRecognizers>
+                            </Border>
+                            <Label Text="White" FontSize="10"
+                                   TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                                   HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+
+                        <!-- Sepia -->
+                        <VerticalStackLayout Spacing="6" HorizontalOptions="Start">
+                            <Border x:Name="ColorPreset3"
+                                    BackgroundColor="#C8B89A"
+                                    StrokeShape="RoundRectangle 6"
+                                    StrokeThickness="2"
+                                    Stroke="{AppThemeBinding Dark=#444444, Light=#cccccc}"
+                                    WidthRequest="44" HeightRequest="44">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="ColorPreset_Tapped" CommandParameter="#C8B89A" />
+                                </Border.GestureRecognizers>
+                            </Border>
+                            <Label Text="Sepia" FontSize="10"
+                                   TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                                   HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+
+                        <!-- Soft green -->
+                        <VerticalStackLayout Spacing="6" HorizontalOptions="Start">
+                            <Border x:Name="ColorPreset4"
+                                    BackgroundColor="#B5C9A8"
+                                    StrokeShape="RoundRectangle 6"
+                                    StrokeThickness="2"
+                                    Stroke="{AppThemeBinding Dark=#444444, Light=#cccccc}"
+                                    WidthRequest="44" HeightRequest="44">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="ColorPreset_Tapped" CommandParameter="#B5C9A8" />
+                                </Border.GestureRecognizers>
+                            </Border>
+                            <Label Text="Green" FontSize="10"
+                                   TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
+                                   HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+
+                    </HorizontalStackLayout>
+
+                    <!-- Custom hex -->
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Entry x:Name="CustomColorEntry"
+                               Placeholder="#RRGGBB"
+                               BackgroundColor="{AppThemeBinding Dark=#1e1e1e, Light=#ffffff}"
+                               TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                               PlaceholderColor="{AppThemeBinding Dark=#555555, Light=#aaaaaa}"
+                               FontSize="14"
+                               MaxLength="7" />
+                        <Button Grid.Column="1"
+                                Text="Apply"
+                                Clicked="ApplyCustomColor_Click"
+                                BackgroundColor="#E50914"
+                                TextColor="White"
+                                CornerRadius="4"
+                                Padding="16,8" />
+                    </Grid>
+
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

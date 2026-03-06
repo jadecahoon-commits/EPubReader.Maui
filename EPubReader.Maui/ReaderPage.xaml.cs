@@ -33,7 +33,7 @@ public partial class ReaderPage : ContentPage
     {
         InitializeComponent();
         _scanner = scanner;
-        Title = bookItem.Title;
+        //Title = bookItem.Title;
         _filePath = bookItem.FilePath;
         _calibreKey = bookItem.CalibreKey;
     }
@@ -319,11 +319,7 @@ public partial class ReaderPage : ContentPage
 
     // ── Theme ─────────────────────────────────────────────────────────────────
 
-    private void ThemeButton_Click(object? sender, EventArgs e)
-    {
-        LibraryData.Theme = LibraryData.Theme == "Dark" ? "Light" : "Dark";
-        RefreshTheme();
-    }
+
 
     public async void RefreshTheme()
     {
@@ -335,6 +331,23 @@ public partial class ReaderPage : ContentPage
             Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark")
         };
     }
+
+    // -- Reader settings ───────────────────────────────────────────────────────
+    private async void ReaderSettings_Click(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new ReaderSettingsPage(RefreshReaderSettings));
+    }
+    public void RefreshReaderSettings()
+     {
+         // Re-render the current chapter with updated font size and text color
+         if (_chapters.Count == 0) return;
+         _savedPage = _currentPage;
+         var chapter = _chapters[_currentChapter];
+         ContentWebView.Source = new HtmlWebViewSource
+         {
+             Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark")
+         };
+     }
 
     // ── Chapter display ───────────────────────────────────────────────────────
 
@@ -517,7 +530,7 @@ public partial class ReaderPage : ContentPage
         PrevChapterButton.IsEnabled = navIndex > 0;
         NextChapterButton.IsEnabled = navIndex < navEntries.Count - 1;
 
-        StatusText.Text = _chapters.Count > 0 ? _chapters[_currentChapter].Key : "";
+        StatusText.Text = _book?.Title ?? "";
     }
     // @\ GO_CTRL-ALT-DELETE YOUR_FACE.PNG
     private void SavePosition()
@@ -533,7 +546,9 @@ public partial class ReaderPage : ContentPage
     private static string BuildPagedHtml(string rawHtml, bool isDark)
     {
         var bg = isDark ? "#0f0f0f" : "#f5f5f5";
-        var fg = isDark ? "#DCDCDC" : "#1a1a1a";
+        var fg = !string.IsNullOrEmpty(LibraryData.ReaderTextColor)
+         ? LibraryData.ReaderTextColor
+         : (isDark ? "#DCDCDC" : "#1a1a1a");
         var headingColor = isDark ? "#FFFFFF" : "#000000";
 
         var linkColor = "#E50914";
@@ -587,7 +602,7 @@ box-sizing: border-box; margin: 0; padding: 0;
     width: 100vw;
     padding: 32px 20px 40px;
     font-family: Georgia, 'Times New Roman', serif;
-    font-size: 17px;
+    font-size: {LibraryData.ReaderFontSize}px;
     line-height: 1.75;
     color: {fg} ;
     background-color: {bg} ;
@@ -598,7 +613,6 @@ box-sizing: border-box; margin: 0; padding: 0;
   @media (min-width: 600px) {{
     #content {{
       padding: 40px 60px 48px;
-      font-size: 18px;
     }}
   }}
 

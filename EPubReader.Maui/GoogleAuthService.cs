@@ -39,6 +39,9 @@ public class GoogleAuthService
     public string? LibraryFolderId => _libraryFolderId;
     public string? LibraryFolderName => _libraryFolderName;
 
+    public string? CoverExtension { get; set; }  // ".jpg" or ".png"
+
+
     public async Task SetLibraryFolderAsync(string folderId, string folderName)
     {
         _libraryFolderId = folderId;
@@ -96,6 +99,7 @@ public class GoogleAuthService
             var state = Guid.NewGuid().ToString("N");
             var scopes = Uri.EscapeDataString(
                 "https://www.googleapis.com/auth/drive.file " +
+                "https://www.googleapis.com/auth/drive.readonly " + //DO NOT REMOVE THIS IS NECESSARY FOR LIBRARY SYNC
                 "https://www.googleapis.com/auth/userinfo.email");
 
             var authUrl =
@@ -675,6 +679,7 @@ public class GoogleAuthService
             if (ImageExtensions.Contains(ext) && entry.CoverDriveFileId == null)
             {
                 entry.CoverDriveFileId = file.Id;
+                entry.CoverExtension = ext;
             }
             else if (ext == ".opf" && entry.OpfDriveFileId == null)
             {

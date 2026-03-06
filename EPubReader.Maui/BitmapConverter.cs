@@ -10,12 +10,30 @@ public class BitmapConverter : IValueConverter
             return null;
 
 #if ANDROID
-        if (path.StartsWith("content://"))
-        {
-            return ImageSource.FromStream(() => OpenAndroidStream(path));
-        }
+    if (path.StartsWith("content://"))
+        return ImageSource.FromStream(() => OpenAndroidStream(path));
 #endif
+
+        if (path.StartsWith("gdrive://"))
+            return ImageSource.FromStream(() => OpenDriveStreamAsync(path).GetAwaiter().GetResult());
+
         return ImageSource.FromFile(path);
+    }
+
+    private static async Task<Stream?> OpenDriveStreamAsync(string drivePath)
+    {
+        try
+        {
+            var localPath = await DriveLibraryScanner.ResolveToLocalPathAsync(drivePath);
+            if (localPath == null) return null;
+            var mem = new MemoryStream(await File.ReadAllBytesAsync(localPath));
+            return mem;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"BitmapConverter drive error for {drivePath}: {ex.Message}");
+            return null;
+        }
     }
 
 #if ANDROID

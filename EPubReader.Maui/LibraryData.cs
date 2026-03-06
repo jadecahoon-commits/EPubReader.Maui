@@ -37,6 +37,8 @@ public static class LibraryData
         public Dictionary<string, ReadingPosition> Positions { get; set; } = new();
         public string Theme { get; set; } = "Dark";
         public string KindleEmail { get; set; } = "";
+        public int    ReaderFontSize  { get; set; } = 17;
+        public string ReaderTextColor { get; set; } = "#DCDCDC";
     }
 
     // ── In-memory state ───────────────────────────────────────────────────────
@@ -49,6 +51,8 @@ public static class LibraryData
     private static string _libraryPath = ""; 
     private static string _saveDataPath = "";
     private static string _kindleEmail = "";
+    private static int _readerFontSize = 17;
+    private static string _readerTextColor = "#DCDCDC";
 
     public class ReadingPosition
     {
@@ -87,6 +91,18 @@ public static class LibraryData
         get => _kindleEmail;
         set { _kindleEmail = value; SaveData(); }
     }
+
+    public static int ReaderFontSize
+     {
+         get => _readerFontSize;
+         set { _readerFontSize = value; SaveData(); }
+     }
+
+     public static string ReaderTextColor
+     {
+         get => _readerTextColor;
+         set { _readerTextColor = value; SaveData(); }
+     }
 
     // ── Calibre key normalization ─────────────────────────────────────────────
 
@@ -235,6 +251,8 @@ public static class LibraryData
             _positions = root.Positions ?? new();
             _theme = root.Theme ?? "Dark"; 
             _kindleEmail = root.KindleEmail ?? "";
+            _readerFontSize = root.ReaderFontSize;
+            _readerTextColor = root.ReaderTextColor ?? "#DCDCDC";
 
             // Migrate any old platform-specific keys to normalized Calibre keys
             MigrateKeysToNormalized();
@@ -391,7 +409,9 @@ public static class LibraryData
                 StandaloneFandoms = _standaloneFandoms.OrderBy(f => f).ToList(),
                 Positions = _positions,
                 Theme = _theme,
-                KindleEmail = _kindleEmail 
+                KindleEmail = _kindleEmail,
+                ReaderFontSize = _readerFontSize,
+                ReaderTextColor = _readerTextColor,
             };
 
             var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });

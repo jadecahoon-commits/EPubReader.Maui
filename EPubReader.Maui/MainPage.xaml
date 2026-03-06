@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:EPubReader.Maui"
-             x:Class="EPubReader.Maui.MainPage"
-             Title="EPubReader">
-
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:local="clr-namespace:EPubReader.Maui"
+             x:Class="EPubReader.Maui.MainPage"             
+             NavigationPage.HasNavigationBar="False">
     <ContentPage.Resources>
         <local:InvertBoolConverter x:Key="InvertBoolConverter" />
         <local:BitmapConverter x:Key="BitmapConverter" />
     </ContentPage.Resources>
-
     <!-- Outer grid: content row + bottom bar row (height set in code-behind on Android) -->
     <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition x:Name="BottomBarRow" Height="0" />
         </Grid.RowDefinitions>
-
         <!-- ═══ Main content row ═══ -->
         <Grid Grid.Row="0" x:Name="MainContentGrid">
             <Grid.ColumnDefinitions>
@@ -24,7 +22,6 @@
                 <ColumnDefinition x:Name="SidebarColumn" Width="260" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-
             <!-- ═══ Left panel: Fandoms sidebar ═══ -->
             <Grid Grid.Column="0"
                   x:Name="SidebarPanel"
@@ -36,13 +33,11 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-
                 <Label Text="Fandoms"
                        FontSize="22"
                        FontAttributes="Bold"
                        TextColor="{AppThemeBinding Dark=White, Light=Black}"
                        Margin="8,0,0,20" />
-
                 <!-- Fandom list -->
                 <CollectionView Grid.Row="1"
                                 x:Name="FandomList"
@@ -75,7 +70,6 @@
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
-
                 <!-- Add fandom -->
                 <VerticalStackLayout Grid.Row="2"
                                      Spacing="8"
@@ -102,7 +96,6 @@
                                 Margin="6,0,0,0" />
                     </Grid>
                 </VerticalStackLayout>
-
                 <!-- Settings button -->
                 <Button Grid.Row="3"
                         Text="⚙  Settings"
@@ -113,14 +106,12 @@
                         Margin="0,8,0,0"
                         Padding="10" />
             </Grid>
-
             <!-- Sidebar border -->
             <BoxView x:Name="SidebarBorder"
                      Grid.Column="0"
                      WidthRequest="1"
                      HorizontalOptions="End"
                      BackgroundColor="{AppThemeBinding Dark=#333333, Light=#dddddd}" />
-
             <!-- ═══ Right panel ═══ -->
             <Grid Grid.Column="1" Padding="28,24,28,16">
                 <Grid.RowDefinitions>
@@ -130,28 +121,24 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-
                 <Label x:Name="SelectedFandomHeader"
                        Text="Select a fandom"
                        FontSize="26"
                        FontAttributes="Bold"
                        TextColor="{AppThemeBinding Dark=White, Light=Black}"
                        Margin="0,0,0,4" />
-
                 <Label x:Name="BookCountText"
                        Grid.Row="1"
                        Text=""
                        FontSize="13"
                        TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
                        Margin="0,0,0,20" />
-
                 <!-- Category sections -->
                 <ScrollView Grid.Row="2">
                     <VerticalStackLayout x:Name="CategorySections">
                         <!-- Populated via BindableLayout in code-behind -->
                     </VerticalStackLayout>
                 </ScrollView>
-
                 <!-- Description panel -->
                 <Border Grid.Row="3"
                         x:Name="DescriptionPanel"
@@ -164,7 +151,6 @@
                         Margin="0,12,0,0"
                         HeightRequest="160">
                     <Grid RowDefinitions="Auto,Auto,*">
-
                         <HorizontalStackLayout Spacing="12" Margin="0,0,0,6">
                             <Label x:Name="SelectedBookTitle"
                                    FontSize="18"
@@ -181,13 +167,11 @@
                                        CharacterSpacing="3" />
                             </Border>
                         </HorizontalStackLayout>
-
                         <Label x:Name="SelectedBookAuthor"
                                Grid.Row="1"
                                FontSize="13"
                                TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
                                Margin="0,0,0,8" />
-
                         <ScrollView Grid.Row="2">
                             <Label x:Name="SelectedBookDescription"
                                    FontSize="13"
@@ -196,45 +180,47 @@
                         </ScrollView>
                     </Grid>
                 </Border>
-
-                <!-- Action row -->
-                <Grid Grid.Row="4"
-      ColumnDefinitions="*,Auto,Auto,Auto"
-      Margin="0,12,0,0">
-                    <Entry x:Name="CategoryInput"
-           Placeholder="Category..."
-           BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#ffffff}"
-           TextColor="{AppThemeBinding Dark=White, Light=Black}"
-           FontSize="13" />
-                    <Button Grid.Column="1"
-            Text="Save"
-            Clicked="SaveCategory_Click"
-            BackgroundColor="#E50914"
-            TextColor="White"
-            CornerRadius="4"
-            Padding="12,0"
-            Margin="8,0,0,0" />
-                    <Button Grid.Column="2"
-            Text="▶  Read"
-            Clicked="OpenBook_Click"
-            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
-            TextColor="{AppThemeBinding Dark=White, Light=Black}"
-            CornerRadius="4"
-            Padding="12,0"
-            Margin="8,0,0,0" />
-                    <Button Grid.Column="3"
-            x:Name="SendToKindleButton"
-            Text="📨  Kindle"
-            Clicked="SendToKindle_Click"
-            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
-            TextColor="{AppThemeBinding Dark=White, Light=Black}"
-            CornerRadius="4"
-            Padding="12,0"
-            Margin="8,0,0,0" />
-                </Grid>
+                
+                
+                    <!-- Action row -->
+                    <Grid Grid.Row="4"
+ColumnDefinitions="*,Auto,Auto,Auto"
+Margin="0,12,0,0">
+                        <Entry x:Name="CategoryInput"
+     Placeholder="Category..."
+     BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#ffffff}"
+     TextColor="{AppThemeBinding Dark=White, Light=Black}"
+     FontSize="13" />
+                        <Button Grid.Column="1"
+      Text="Save"
+      Clicked="SaveCategory_Click"
+      BackgroundColor="#E50914"
+      TextColor="White"
+      CornerRadius="4"
+      Padding="12,0"
+      Margin="8,0,0,0" />
+                        <Button Grid.Column="2"
+      Text="▶  Read"
+      Clicked="OpenBook_Click"
+      BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+      TextColor="{AppThemeBinding Dark=White, Light=Black}"
+      CornerRadius="4"
+      Padding="12,0"
+      Margin="8,0,0,0" />
+                        <Button Grid.Column="3"
+      x:Name="SendToKindleButton"
+      Text="📨  Kindle"
+      Clicked="SendToKindle_Click"
+      BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
+      TextColor="{AppThemeBinding Dark=White, Light=Black}"
+      CornerRadius="4"
+      Padding="12,0"
+      Margin="8,0,0,0" />
+                    </Grid>
             </Grid>
         </Grid>
-
+        
+        
         <!-- ═══ Android Bottom Bar ═══ -->
         <Grid Grid.Row="1"
               x:Name="AndroidBottomBar"
@@ -271,7 +257,6 @@
                         Padding="0" />
             </Grid>
         </Grid>
-
         <!-- ═══ Android Fandom Overlay ═══ -->
         <Grid x:Name="FandomOverlay"
               Grid.RowSpan="2"
@@ -280,7 +265,6 @@
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Tapped="FandomOverlay_Tapped" />
             </Grid.GestureRecognizers>
-
             <Border x:Name="FandomSheet"
                     VerticalOptions="End"
                     HorizontalOptions="Fill"
@@ -290,13 +274,11 @@
                     Padding="16,20,16,32"
                     MaximumHeightRequest="520">
                 <Grid RowDefinitions="Auto,Auto,*,Auto">
-
                     <BoxView Grid.Row="0"
                              WidthRequest="40" HeightRequest="4" CornerRadius="2"
                              HorizontalOptions="Center"
                              BackgroundColor="{AppThemeBinding Dark=#555555, Light=#cccccc}"
                              Margin="0,0,0,16" />
-
                     <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="4,0,4,12">
                         <Label Text="Fandoms"
                                FontSize="20" FontAttributes="Bold"
@@ -310,7 +292,6 @@
                                 BorderWidth="0" FontSize="18"
                                 Padding="8,0" WidthRequest="44" HeightRequest="44" />
                     </Grid>
-
                     <CollectionView Grid.Row="2"
                                     x:Name="FandomListAndroid"
                                     SelectionMode="Single"
@@ -334,7 +315,6 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
-
                     <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,16,0,0">
                         <Entry x:Name="NewFandomInputAndroid"
                                Placeholder="New fandom..."
@@ -350,10 +330,8 @@
                                 WidthRequest="40" HeightRequest="40"
                                 Padding="0" Margin="8,0,0,0" />
                     </Grid>
-
                 </Grid>
             </Border>
         </Grid>
-
     </Grid>
 </ContentPage>

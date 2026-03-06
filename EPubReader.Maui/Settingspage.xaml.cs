@@ -5,6 +5,7 @@ namespace EPubReader.Maui;
 
 public partial class SettingsPage : ContentPage
 {
+    private bool _sidebarExpanded = false;
     public SettingsPage()
     {
         InitializeComponent();
@@ -151,6 +152,55 @@ public partial class SettingsPage : ContentPage
 #endif
     }
 
+    private void SidebarToggle_Click(object? sender, EventArgs e)
+    {
+        _sidebarExpanded = !_sidebarExpanded;
+
+        Sidebar.WidthRequest = _sidebarExpanded ? 180 : 52;
+        SidebarTitleLabel.IsVisible = _sidebarExpanded;
+
+        NavAppearanceLabel.IsVisible = _sidebarExpanded;
+        NavLibraryLabel.IsVisible = _sidebarExpanded;
+        NavSyncLabel.IsVisible = _sidebarExpanded;
+        NavGoogleDriveLabel.IsVisible = _sidebarExpanded;
+        NavKindleLabel.IsVisible = _sidebarExpanded;
+    }
+
+    private void Sidebar_Tapped(object? sender, TappedEventArgs e)
+    {
+        var section = e.Parameter as string;
+
+        PanelAppearance.IsVisible = section == "Appearance";
+        PanelLibrary.IsVisible = section == "Library";
+        PanelSync.IsVisible = section == "Sync";
+        PanelGoogleDrive.IsVisible = section == "GoogleDrive";
+        PanelKindle.IsVisible = section == "Kindle";
+
+        var inactive = Application.Current?.RequestedTheme == AppTheme.Dark
+            ? Color.FromArgb("#1a1a1a")
+            : Color.FromArgb("#e8e8e8");
+
+        NavAppearance.BackgroundColor = section == "Appearance" ? Color.FromArgb("#E50914") : inactive;
+        NavLibrary.BackgroundColor = section == "Library" ? Color.FromArgb("#E50914") : inactive;
+        NavSync.BackgroundColor = section == "Sync" ? Color.FromArgb("#E50914") : inactive;
+        NavGoogleDrive.BackgroundColor = section == "GoogleDrive" ? Color.FromArgb("#E50914") : inactive;
+        NavKindle.BackgroundColor = section == "Kindle" ? Color.FromArgb("#E50914") : inactive;
+
+        // Update label colours
+        var activeColor = Colors.White;
+        var inactiveColor = Application.Current?.RequestedTheme == AppTheme.Dark
+            ? Color.FromArgb("#bbbbbb")
+            : Color.FromArgb("#555555");
+
+        NavAppearanceLabel.TextColor = section == "Appearance" ? activeColor : inactiveColor;
+        NavLibraryLabel.TextColor = section == "Library" ? activeColor : inactiveColor;
+        NavSyncLabel.TextColor = section == "Sync" ? activeColor : inactiveColor;
+        NavGoogleDriveLabel.TextColor = section == "GoogleDrive" ? activeColor : inactiveColor;
+        NavKindleLabel.TextColor = section == "Kindle" ? activeColor : inactiveColor;
+    }
+
+    // Also REMOVE the old Sidebar_Click method if it exists.
+
     // ── Theme ─────────────────────────────────────────────────────────────────
 
     private void DarkModeToggle_Toggled(object? sender, ToggledEventArgs e)
@@ -160,6 +210,11 @@ public partial class SettingsPage : ContentPage
 
         if (Application.Current != null)
             Application.Current.UserAppTheme = isDark ? AppTheme.Dark : AppTheme.Light;
+    }
+
+    private async void ReaderSettings_Click(object? sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new ReaderSettingsPage(() => { }));
     }
 
     // ── Android folder picker ─────────────────────────────────────────────────
