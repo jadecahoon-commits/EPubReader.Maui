@@ -20,6 +20,7 @@ public partial class ReaderPage : ContentPage
     private int _savedPage = -1;
     private string _calibreKey = "";
     private string _filePath = "";
+    private BookItem _bookItem = null!;
 
     // TOC
     private List<TocEntry> _tocEntries = new();
@@ -36,6 +37,7 @@ public partial class ReaderPage : ContentPage
         //Title = bookItem.Title;
         _filePath = bookItem.FilePath;
         _calibreKey = bookItem.CalibreKey;
+       _bookItem = bookItem; 
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -203,6 +205,8 @@ public partial class ReaderPage : ContentPage
                 var savedPos = LibraryData.GetPosition(_calibreKey);
                 _currentChapter = Math.Clamp(savedPos?.Chapter ?? 0, 0, _chapters.Count - 1);
                 _savedPage = savedPos?.Page ?? 0;
+                LibraryData.SetLastReadBook(_bookItem);
+
 
                 await ShowChapterAsync(_currentChapter, goToLastPage: false);
             }

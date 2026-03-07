@@ -9,6 +9,7 @@ namespace EPubReader.Maui;
 
 public static class LibraryData
 {
+
     // ── Bootstrap file (local only, never synced) ─────────────────────────────
     // Stores just the two paths so we know where to find everything else.
 
@@ -40,6 +41,7 @@ public static class LibraryData
         public int    ReaderFontSize  { get; set; } = 17;
         public string ReaderTextColor { get; set; } = "#DCDCDC";
         public string ReaderFont { get; set; } = "Georgia";
+        public LastReadBookInfo? LastReadBook { get; set; }
     }
 
     // ── In-memory state ───────────────────────────────────────────────────────
@@ -48,6 +50,7 @@ public static class LibraryData
     private static Dictionary<string, string> _categories = new();
     private static HashSet<string> _standaloneFandoms = new(StringComparer.OrdinalIgnoreCase);
     private static Dictionary<string, ReadingPosition> _positions = new();
+    private static LastReadBookInfo? _lastReadBook;
     private static string _theme = "Dark";
     private static string _libraryPath = ""; 
     private static string _saveDataPath = "";
@@ -56,10 +59,20 @@ public static class LibraryData
     private static string _readerTextColor = "#DCDCDC";
     private static string _readerFont = "Georgia";
 
+
     public class ReadingPosition
     {
         public int Chapter { get; set; } = 0;
         public int Page { get; set; } = 0;
+    }
+
+    public class LastReadBookInfo
+    {
+        public string CalibreKey { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Author { get; set; } = "";
+        public string FilePath { get; set; } = "";
+        public string? CoverImagePath { get; set; }
     }
 
     // ── Public properties ─────────────────────────────────────────────────────
@@ -110,6 +123,20 @@ public static class LibraryData
     {
         get => _readerFont;
         set { _readerFont = value; SaveData(); }
+    }
+    public static LastReadBookInfo? LastReadBook => _lastReadBook;
+
+    public static void SetLastReadBook(BookItem book)
+    {
+        _lastReadBook = new LastReadBookInfo
+        {
+            CalibreKey = book.CalibreKey,
+            Title = book.Title,
+            Author = book.Author,
+            FilePath = book.FilePath,
+            CoverImagePath = book.CoverImagePath
+        };
+        SaveData();
     }
 
 
@@ -263,7 +290,7 @@ public static class LibraryData
             _readerFontSize = root.ReaderFontSize;
             _readerTextColor = root.ReaderTextColor ?? "#DCDCDC";
             _readerFont = root.ReaderFont ?? "Georgia";
-
+            _lastReadBook = root.LastReadBook;
 
             // Migrate any old platform-specific keys to normalized Calibre keys
             MigrateKeysToNormalized();
@@ -423,7 +450,9 @@ public static class LibraryData
                 KindleEmail = _kindleEmail,
                 ReaderFontSize = _readerFontSize,
                 ReaderTextColor = _readerTextColor,
-                ReaderFont = _readerFont
+                ReaderFont = _readerFont,
+                LastReadBook = _lastReadBook
+
             };
 
             var json = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });

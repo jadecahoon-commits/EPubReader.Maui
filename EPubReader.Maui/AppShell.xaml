@@ -4,6 +4,17 @@
        xmlns:local="clr-namespace:EPubReader.Maui"
        x:Class="EPubReader.Maui.AppShell">
 
-    <ShellContent ContentTemplate="{DataTemplate local:MainPage}" />
-</Shell>
+    <!-- HomePage is the opening screen -->
+    <ShellContent Route="HomePage"
+                  ContentTemplate="{DataTemplate local:HomePage}" />
 
+    <!-- MainPage and SettingsPage are navigated to from HomePage -->
+    <ShellContent Route="MainPage"
+                  ContentTemplate="{DataTemplate local:MainPage}"
+                  IsVisible="False" />
+
+    <ShellContent Route="SettingsPage"
+                  ContentTemplate="{DataTemplate local:SettingsPage}"
+                  IsVisible="False" />
+
+</Shell>
