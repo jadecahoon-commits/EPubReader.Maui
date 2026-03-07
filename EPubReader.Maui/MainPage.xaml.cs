@@ -133,6 +133,78 @@ public partial class MainPage : ContentPage
         }
     }
 
+    private void CategoryInput_TextChanged(object? sender, TextChangedEventArgs e)
+    {
+        try
+        {
+            var text = e.NewTextValue ?? "";
+
+            // Hide if nothing typed yet
+            if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(_selectedFandom))
+            {
+                CategorySuggestionsBorder.IsVisible = false;
+                return;
+            }
+
+            var all = LibraryData.GetCategoriesForFandom(_selectedFandom, Unsorted);
+            var matches = all
+                .Where(c => c.StartsWith(text, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (matches.Count == 0 || (matches.Count == 1 && matches[0].Equals(text, StringComparison.OrdinalIgnoreCase)))
+            {
+                CategorySuggestionsBorder.IsVisible = false;
+                return;
+            }
+
+            CategorySuggestions.ItemsSource = matches;
+            CategorySuggestionsBorder.IsVisible = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"CategoryInput_TextChanged: {ex}");
+        }
+    }
+
+
+
+    private void CategoryInput_Unfocused(object? sender, FocusEventArgs e)
+    {
+        // Small delay so a tap on a suggestion registers before the list hides
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            await Task.Delay(200);
+            CategorySuggestionsBorder.IsVisible = false;
+        });
+    }
+
+    private void CategorySuggestion_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        try
+        {
+            if (e.CurrentSelection.FirstOrDefault() is not string chosen) return;
+            if (_selectedBook == null) return;
+
+            CategoryInput.Text = chosen;
+            _selectedBook.Category = chosen;
+            LibraryData.SetCategory(_selectedBook.CalibreKey, chosen);
+
+            CategorySuggestionsBorder.IsVisible = false;
+            CategorySuggestions.SelectedItem = null;
+
+            var savedBook = _selectedBook;
+            if (!string.IsNullOrEmpty(_selectedFandom))
+                RebuildCategorySections(_selectedFandom);
+
+            _selectedBook = savedBook;
+            DescriptionPanel.IsVisible = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"CategorySuggestion_SelectionChanged: {ex}");
+        }
+    }
+
 
 
     private async Task LoadDriveBooksAsync(string folderId)

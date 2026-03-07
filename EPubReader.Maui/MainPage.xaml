@@ -186,12 +186,43 @@
                     <Grid Grid.Row="4"
 ColumnDefinitions="*,Auto,Auto,Auto"
 Margin="0,12,0,0">
+                    <!-- Replace the plain Entry with this Grid wrapper in column 0 of the action row -->
+                    <Grid x:Name="CategoryInputWrapper">
                         <Entry x:Name="CategoryInput"
-     Placeholder="Category..."
-     BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#ffffff}"
-     TextColor="{AppThemeBinding Dark=White, Light=Black}"
-     FontSize="13" />
-                        <Button Grid.Column="1"
+           Placeholder="Category..."
+           BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#ffffff}"
+           TextColor="{AppThemeBinding Dark=White, Light=Black}"
+           FontSize="13"
+           TextChanged="CategoryInput_TextChanged"
+           Unfocused="CategoryInput_Unfocused" />
+
+                        <!-- Autocomplete dropdown — floats below the Entry via negative margin -->
+                        <Border x:Name="CategorySuggestionsBorder"
+            IsVisible="False"
+            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#ffffff}"
+            Stroke="{AppThemeBinding Dark=#444444, Light=#cccccc}"
+            StrokeThickness="1"
+            StrokeShape="RoundRectangle 4"
+            VerticalOptions="Start"
+            Margin="0,40,0,0"
+            ZIndex="10"
+            MaximumHeightRequest="160">
+                            <CollectionView x:Name="CategorySuggestions"
+                        SelectionMode="Single"
+                        SelectionChanged="CategorySuggestion_SelectionChanged"
+                        BackgroundColor="Transparent">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Label Text="{Binding .}"
+                           Padding="10,8"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Dark=White, Light=Black}" />
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </Border>
+                    </Grid>
+                    <Button Grid.Column="1"
       Text="Save"
       Clicked="SaveCategory_Click"
       BackgroundColor="#E50914"

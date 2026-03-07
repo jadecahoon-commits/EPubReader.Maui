@@ -236,6 +236,31 @@ public static class LibraryData
         return null;
     }
 
+    /// <summary>
+    /// Returns all distinct categories used by books in the given fandom.
+    /// Pass the "Unsorted" sentinel to get categories for fandom-less books.
+    /// </summary>
+    public static List<string> GetCategoriesForFandom(string fandom, string unsortedSentinel = "Unsorted")
+    {
+        try
+        {
+            // Build a set of CalibreKeys that belong to this fandom
+            var keys = fandom.Equals(unsortedSentinel, StringComparison.OrdinalIgnoreCase)
+                ? _fandoms.Where(kv => string.IsNullOrWhiteSpace(kv.Value)).Select(kv => kv.Key)
+                : _fandoms.Where(kv => kv.Value.Equals(fandom, StringComparison.OrdinalIgnoreCase)).Select(kv => kv.Key);
+
+            var keySet = new HashSet<string>(keys, StringComparer.OrdinalIgnoreCase);
+
+            return _categories
+                .Where(kv => keySet.Contains(kv.Key) && !string.IsNullOrWhiteSpace(kv.Value))
+                .Select(kv => kv.Value)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(c => c)
+                .ToList();
+        }
+        catch (Exception ex) { Debug.WriteLine($"Error getting categories for fandom: {ex}"); return new(); }
+    }
+
     // ── Load ──────────────────────────────────────────────────────────────────
 
     public static void Load()
