@@ -47,6 +47,24 @@ public partial class MainPage : ContentPage
         }
     }
 
+    public MainPage(ILibraryScanner scanner, string initialFandom)
+    {
+        InitializeComponent();
+        _scanner = scanner;
+        _selectedFandom = initialFandom;
+        try
+        {
+            LibraryData.Load();
+            LoadBooks();
+            LoadFandoms();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error during initialization: {ex}");
+            ShowError("Failed to load library", ex.Message);
+        }
+    }
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -72,6 +90,8 @@ public partial class MainPage : ContentPage
         // Auto-select the first fandom so books are visible without a manual tap
         AutoSelectFandom();
     }
+
+    
 
     private void LoadBooks()
     {
@@ -976,13 +996,10 @@ private async Task SendToKindleAndroidAsync(string cachedFilePath, string kindle
 
             string? toSelect = null;
 
-            // Re-select whatever was selected before (e.g. after returning from Settings)
             if (!string.IsNullOrEmpty(_selectedFandom) && fandoms.Contains(_selectedFandom))
-                toSelect = _selectedFandom;
-            // Otherwise prefer "Unsorted" (where un-categorised books land)
+                toSelect = _selectedFandom;          // ← honours fandom from HomePage
             else if (fandoms.Contains(Unsorted))
                 toSelect = Unsorted;
-            // Otherwise just take the first entry
             else
                 toSelect = fandoms[0];
 

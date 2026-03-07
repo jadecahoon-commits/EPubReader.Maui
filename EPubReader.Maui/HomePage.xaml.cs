@@ -146,7 +146,7 @@ public partial class HomePage : ContentPage
 
     private async Task NavigateToFandomAsync(string fandom)
     {
-        await Shell.Current.GoToAsync($"//MainPage?fandom={Uri.EscapeDataString(fandom)}");
+        await Navigation.PushAsync(new MainPage(_scanner, fandom));
     }
 
     // ── Add fandom (sidebar) ──────────────────────────────────────────────────
