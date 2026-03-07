@@ -36,12 +36,50 @@ public partial class HomePage : ContentPage
         }
 
         await GoogleAuthService.Instance.InitAsync();
+
+        // Auto-download library-data.json from Google Drive on app open
+        await TryAutoDownloadLibraryDataAsync();
 #endif
 
         LibraryData.Load();
         LoadFandoms();
         LoadLastReadBook();
         LoadReadingStats();
+    }
+
+    // ── Auto-download library data from Drive ─────────────────────────────────
+
+    private static async Task TryAutoDownloadLibraryDataAsync()
+    {
+        try
+        {
+            if (!GoogleAuthService.Instance.IsSignedIn) return;
+
+            var localFile = ResolveLocalDataFile();
+            if (localFile == null) return;
+
+            var ok = await GoogleAuthService.Instance.DownloadLibraryDataAsync(localFile);
+            Debug.WriteLine(ok
+                ? "HomePage: auto-downloaded library-data from Drive"
+                : "HomePage: Drive auto-download skipped (no file on Drive or not signed in)");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"HomePage.TryAutoDownloadLibraryDataAsync: {ex.Message}");
+        }
+    }
+
+    private static string? ResolveLocalDataFile()
+    {
+        var saveDataPath = LibraryData.SaveDataPath;
+
+        if (!string.IsNullOrEmpty(saveDataPath) && !saveDataPath.StartsWith("content://"))
+            return System.IO.Path.Combine(saveDataPath, "library-data.json");
+
+        return System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "EPubReader",
+            "library-data.json");
     }
 
     // ── Android layout ────────────────────────────────────────────────────────
@@ -87,12 +125,12 @@ public partial class HomePage : ContentPage
                 return;
             }
 
-            LastBookTitle.Text  = last.Title;
+            LastBookTitle.Text = last.Title;
             LastBookAuthor.Text = last.Author;
 
             if (!string.IsNullOrEmpty(last.CoverImagePath))
             {
-                LastBookCover.Source    = ImageSource.FromFile(last.CoverImagePath);
+                LastBookCover.Source = ImageSource.FromFile(last.CoverImagePath);
                 LastBookCover.IsVisible = true;
             }
             else
@@ -115,14 +153,12 @@ public partial class HomePage : ContentPage
         {
             var totalSeconds = LibraryData.GetTotalReadingSeconds();
 
-            // Filter to this calendar year using ReadHistory timestamps
             var thisYear = DateTime.UtcNow.Year;
             var booksReadThisYear = LibraryData.GetStats().ReadHistory
                 .Values
                 .SelectMany(list => list)
                 .Count(dt => dt.Year == thisYear);
 
-            // Format reading time
             string timeMain, timeSub;
             if (totalSeconds <= 0)
             {
@@ -133,47 +169,28 @@ public partial class HomePage : ContentPage
             {
                 var mins = totalSeconds / 60;
                 timeMain = $"{mins}m";
-                timeSub = mins == 1 ? "minute" : "minutes";
+                timeSub = mins == 1 ? "minute read" : "minutes read";
             }
             else
             {
                 var hours = totalSeconds / 3600;
-                var mins = (totalSeconds % 3600) / 60;
-                timeMain = mins > 0 ? $"{hours}h {mins}m" : $"{hours}h";
-                timeSub = hours == 1 ? "hour" : "hours";
+                timeMain = $"{hours}h";
+                timeSub = hours == 1 ? "hour read" : "hours read";
             }
 
             StatsTimeLabel.Text = timeMain;
             StatsTimeSubLabel.Text = timeSub;
 
-            // Most-read fandom — prefer time-based, fall back to count-based
-            string topFandom = "";
-            string topFandomSub = "";
+            var topFandom = LibraryData.GetStats().ReadHistory
+                .GroupBy(kvp => LibraryData.GetFandom(kvp.Key))
+                .Where(g => !string.IsNullOrEmpty(g.Key))
+                .OrderByDescending(g => g.Sum(kvp => kvp.Value.Count))
+                .FirstOrDefault();
 
-            var timePerFandom = LibraryData.GetTimePerFandom();
-            if (timePerFandom.Any())
+            if (topFandom != null)
             {
-                var top = timePerFandom.OrderByDescending(kv => kv.Value).First();
-                topFandom = top.Key;
-                var fHours = top.Value / 3600;
-                var fMins = (top.Value % 3600) / 60;
-                topFandomSub = fHours > 0 ? $"{fHours}h {fMins}m read" : $"{fMins}m read";
-            }
-            else
-            {
-                var booksPerFandom = LibraryData.GetBooksPerFandom();
-                if (booksPerFandom.Any())
-                {
-                    var top = booksPerFandom.OrderByDescending(kv => kv.Value).First();
-                    topFandom = top.Key;
-                    topFandomSub = top.Value == 1 ? "1 book read" : $"{top.Value} books read";
-                }
-            }
-
-            if (!string.IsNullOrEmpty(topFandom))
-            {
-                StatsTopFandomLabel.Text = topFandom;
-                StatsTopFandomSubLabel.Text = topFandomSub;
+                StatsTopFandomLabel.Text = topFandom.Key;
+                StatsTopFandomSubLabel.Text = $"{topFandom.Sum(kvp => kvp.Value.Count)} sessions";
             }
             else
             {
@@ -186,22 +203,18 @@ public partial class HomePage : ContentPage
         catch (Exception ex)
         {
             Debug.WriteLine($"HomePage.LoadReadingStats: {ex}");
-            StatsCard.IsVisible = false;
         }
     }
 
-    // ── Continue Reading ──────────────────────────────────────────────────────
+    // ── Continue reading ──────────────────────────────────────────────────────
 
     private async void ContinueReading_Tapped(object? sender, TappedEventArgs e)
     {
-        var last = LibraryData.LastReadBook;
-        if (last == null || string.IsNullOrEmpty(last.CalibreKey)) return;
-
         try
         {
-            // Load the full book list and find the matching book by CalibreKey.
-            // This ensures we always use the correct platform-specific FilePath
-            // regardless of which device (Windows/Android/Drive) opened it last.
+            var last = LibraryData.LastReadBook;
+            if (last == null) return;
+
             var books = await Task.Run(() => _scanner.ScanLibrary(LibraryData.LibraryPath));
             var book = books.FirstOrDefault(b => b.CalibreKey == last.CalibreKey);
 
@@ -275,13 +288,20 @@ public partial class HomePage : ContentPage
         await FandomSheet.TranslateTo(0, 0, 250, Easing.CubicOut);
     }
 
-    private async void BottomBarAddFandom_Click(object? sender, EventArgs e)
+    // Navigates back to HomePage (this page is already the root, so just reload)
+    private void BottomBarHome_Click(object? sender, EventArgs e)
     {
-        FandomOverlay.IsVisible = true;
-        FandomSheet.TranslationY = 500;
-        await FandomSheet.TranslateTo(0, 0, 250, Easing.CubicOut);
-        await Task.Delay(280);
-        NewFandomInputAndroid.Focus();
+        // HomePage IS the home — pop back to root if we're somehow in a nav stack,
+        // otherwise just refresh the data.
+        if (Navigation.NavigationStack.Count > 1)
+            _ = Navigation.PopToRootAsync();
+        else
+        {
+            LibraryData.Load();
+            LoadFandoms();
+            LoadLastReadBook();
+            LoadReadingStats();
+        }
     }
 
     // ── Fandom overlay ────────────────────────────────────────────────────────

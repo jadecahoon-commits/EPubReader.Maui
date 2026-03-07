@@ -1021,6 +1021,11 @@ private async Task SendToKindleAndroidAsync(string cachedFilePath, string kindle
         await FandomSheet.TranslateTo(0, 0, 250, Easing.CubicOut);
     }
 
+    private async void BottomBarHome_Click(object? sender, EventArgs e)
+    {
+        await Navigation.PopToRootAsync();
+    }
+
     private async void BottomBarAddFandom_Click(object? sender, EventArgs e)
     {
         FandomOverlay.IsVisible = true;

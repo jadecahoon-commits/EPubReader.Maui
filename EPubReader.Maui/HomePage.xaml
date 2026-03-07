@@ -246,13 +246,13 @@
                         FontSize="13"
                         Padding="0" />
                 <Button Grid.Column="1"
-                        Text="＋  Add"
-                        Clicked="BottomBarAddFandom_Click"
-                        BackgroundColor="Transparent"
-                        TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                        BorderWidth="0"
-                        FontSize="13"
-                        Padding="0" />
+Text="🏠  Home"
+Clicked="BottomBarHome_Click"
+BackgroundColor="Transparent"
+TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
+BorderWidth="0"
+FontSize="13"
+Padding="0" />
                 <Button Grid.Column="2"
                         Text="⚙  Settings"
                         Clicked="Settings_Click"
