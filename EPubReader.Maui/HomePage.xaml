@@ -177,9 +177,55 @@
                         </Grid>
                     </Border>
 
+                    <!-- ── Reading Stats card ── -->
+                    <Border x:Name="StatsCard"
+                            IsVisible="False"
+                            BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#ffffff}"
+                            Stroke="{AppThemeBinding Dark=#2a2a2a, Light=#e0e0e0}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 12"
+                            Padding="16,14">
+                        <Grid ColumnDefinitions="*,*">
+                            <!-- Hours read this year -->
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="📖  TIME READ THIS YEAR"
+                                       FontSize="9"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Dark=#666666, Light=#999999}"
+                                       CharacterSpacing="0.8" />
+                                <Label x:Name="StatsTimeLabel"
+                                       FontSize="20"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Dark=White, Light=Black}" />
+                                <Label x:Name="StatsTimeSubLabel"
+                                       FontSize="11"
+                                       TextColor="{AppThemeBinding Dark=#888888, Light=#777777}" />
+                            </VerticalStackLayout>
+                            <!-- Most-read fandom -->
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" Padding="12,0,0,0">
+                                <Label Text="❤  TOP FANDOM"
+                                       FontSize="9"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Dark=#666666, Light=#999999}"
+                                       CharacterSpacing="0.8" />
+                                <Label x:Name="StatsTopFandomLabel"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       TextColor="#E50914"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="2" />
+                                <Label x:Name="StatsTopFandomSubLabel"
+                                       FontSize="11"
+                                       TextColor="{AppThemeBinding Dark=#888888, Light=#777777}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+
                 </VerticalStackLayout>
             </ScrollView>
         </Grid>
+
+        <!-- ═══ Android Bottom Bar ═══ -->
 
         <!-- ═══ Android Bottom Bar ═══ -->
         <Grid Grid.Row="1"

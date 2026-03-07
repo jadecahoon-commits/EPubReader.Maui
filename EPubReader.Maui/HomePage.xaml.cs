@@ -41,6 +41,7 @@ public partial class HomePage : ContentPage
         LibraryData.Load();
         LoadFandoms();
         LoadLastReadBook();
+        LoadReadingStats();
     }
 
     // ── Android layout ────────────────────────────────────────────────────────
@@ -105,6 +106,87 @@ public partial class HomePage : ContentPage
         {
             Debug.WriteLine($"HomePage.LoadLastReadBook: {ex}");
             ContinueReadingCard.IsVisible = false;
+        }
+    }
+
+    private void LoadReadingStats()
+    {
+        try
+        {
+            var totalSeconds = LibraryData.GetTotalReadingSeconds();
+
+            // Filter to this calendar year using ReadHistory timestamps
+            var thisYear = DateTime.UtcNow.Year;
+            var booksReadThisYear = LibraryData.GetStats().ReadHistory
+                .Values
+                .SelectMany(list => list)
+                .Count(dt => dt.Year == thisYear);
+
+            // Format reading time
+            string timeMain, timeSub;
+            if (totalSeconds <= 0)
+            {
+                StatsCard.IsVisible = false;
+                return;
+            }
+            else if (totalSeconds < 3600)
+            {
+                var mins = totalSeconds / 60;
+                timeMain = $"{mins}m";
+                timeSub = mins == 1 ? "minute" : "minutes";
+            }
+            else
+            {
+                var hours = totalSeconds / 3600;
+                var mins = (totalSeconds % 3600) / 60;
+                timeMain = mins > 0 ? $"{hours}h {mins}m" : $"{hours}h";
+                timeSub = hours == 1 ? "hour" : "hours";
+            }
+
+            StatsTimeLabel.Text = timeMain;
+            StatsTimeSubLabel.Text = timeSub;
+
+            // Most-read fandom — prefer time-based, fall back to count-based
+            string topFandom = "";
+            string topFandomSub = "";
+
+            var timePerFandom = LibraryData.GetTimePerFandom();
+            if (timePerFandom.Any())
+            {
+                var top = timePerFandom.OrderByDescending(kv => kv.Value).First();
+                topFandom = top.Key;
+                var fHours = top.Value / 3600;
+                var fMins = (top.Value % 3600) / 60;
+                topFandomSub = fHours > 0 ? $"{fHours}h {fMins}m read" : $"{fMins}m read";
+            }
+            else
+            {
+                var booksPerFandom = LibraryData.GetBooksPerFandom();
+                if (booksPerFandom.Any())
+                {
+                    var top = booksPerFandom.OrderByDescending(kv => kv.Value).First();
+                    topFandom = top.Key;
+                    topFandomSub = top.Value == 1 ? "1 book read" : $"{top.Value} books read";
+                }
+            }
+
+            if (!string.IsNullOrEmpty(topFandom))
+            {
+                StatsTopFandomLabel.Text = topFandom;
+                StatsTopFandomSubLabel.Text = topFandomSub;
+            }
+            else
+            {
+                StatsTopFandomLabel.Text = "—";
+                StatsTopFandomSubLabel.Text = "";
+            }
+
+            StatsCard.IsVisible = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"HomePage.LoadReadingStats: {ex}");
+            StatsCard.IsVisible = false;
         }
     }
 
