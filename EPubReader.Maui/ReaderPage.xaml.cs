@@ -21,6 +21,8 @@ public partial class ReaderPage : ContentPage
     private string _calibreKey = "";
     private string _filePath = "";
     private BookItem _bookItem = null!;
+    private DateTime? _sessionStart;  
+
 
     // TOC
     private List<TocEntry> _tocEntries = new();
@@ -45,6 +47,9 @@ public partial class ReaderPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        _sessionStart = DateTime.UtcNow;   // start timing this session
+
         if (_loaded) return;
         _loaded = true;
         await LoadBookAsync(_filePath);
@@ -55,6 +60,7 @@ public partial class ReaderPage : ContentPage
     {
         base.OnDisappearing();
         UnhookKeyboard();
+        FlushReadingSession();
     }
 
     // ── Keyboard hook (Windows) ───────────────────────────────────────────────
@@ -541,6 +547,25 @@ public partial class ReaderPage : ContentPage
     {
         if (!string.IsNullOrEmpty(_filePath))
             LibraryData.SetPosition(_calibreKey, _currentChapter, _currentPage);
+    }
+
+    /// <summary>
+    /// Commits elapsed time for this session to LibraryData.
+    /// Called automatically when the page disappears.
+    /// </summary>
+    private void FlushReadingSession()
+    {
+        try
+        {
+            if (_sessionStart.HasValue)
+            {
+                var elapsed = (long)(DateTime.UtcNow - _sessionStart.Value).TotalSeconds;
+                if (elapsed > 0)
+                    LibraryData.RecordReadingSession(_calibreKey, elapsed);
+                _sessionStart = null;
+            }
+        }
+        catch (Exception ex) { Debug.WriteLine($"FlushReadingSession error: {ex.Message}"); }
     }
 
     // ── HTML builder ──────────────────────────────────────────────────────────

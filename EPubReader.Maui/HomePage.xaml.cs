@@ -113,19 +113,22 @@ public partial class HomePage : ContentPage
     private async void ContinueReading_Tapped(object? sender, TappedEventArgs e)
     {
         var last = LibraryData.LastReadBook;
-        if (last == null) return;
+        if (last == null || string.IsNullOrEmpty(last.CalibreKey)) return;
 
         try
         {
-            var book = new BookItem
+            // Load the full book list and find the matching book by CalibreKey.
+            // This ensures we always use the correct platform-specific FilePath
+            // regardless of which device (Windows/Android/Drive) opened it last.
+            var books = await Task.Run(() => _scanner.ScanLibrary(LibraryData.LibraryPath));
+            var book = books.FirstOrDefault(b => b.CalibreKey == last.CalibreKey);
+
+            if (book == null)
             {
-                Title          = last.Title,
-                Author         = last.Author,
-                FilePath       = last.FilePath,
-                CoverImagePath = last.CoverImagePath,
-                CalibreKey     = last.CalibreKey,
-                FileType       = Path.GetExtension(last.FilePath).TrimStart('.').ToLowerInvariant()
-            };
+                await DisplayAlert("Not Found",
+                    "The last-read book could not be found in the current library.", "OK");
+                return;
+            }
 
             await Navigation.PushAsync(new ReaderPage(book, _scanner));
         }

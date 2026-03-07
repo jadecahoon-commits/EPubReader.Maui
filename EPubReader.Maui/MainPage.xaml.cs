@@ -580,6 +580,8 @@ public partial class MainPage : ContentPage
             SelectedBookTitle.Text = book.Title;
             SelectedBookAuthor.Text = $"by {book.Author}";
             SelectedBookType.Text = book.FileType.ToUpperInvariant();
+            UpdateMarkReadButton(_selectedBook);
+
             CategoryInput.Text = book.Category;
             SelectedBookDescription.Text = BuildDescriptionText(book);
 
@@ -591,6 +593,45 @@ public partial class MainPage : ContentPage
             Debug.WriteLine($"Error selecting book: {ex}");
         }
     }
+
+    // Read counter
+    private void UpdateMarkReadButton(BookItem? book)
+    {
+        if (book == null || MarkReadButton == null) return;
+
+        var count = LibraryData.GetReadCount(book.CalibreKey);
+        MarkReadButton.Text = count > 0
+            ? $"✓ Read ({count})"
+            : "✓ Read";
+
+        // Highlight the button if already read at least once
+        MarkReadButton.BackgroundColor = count > 0
+            ? Color.FromArgb("#E50914")
+            : (Application.Current?.RequestedTheme == AppTheme.Dark
+                ? Color.FromArgb("#2a2a2a")
+                : Color.FromArgb("#e8e8e8"));
+
+        MarkReadButton.TextColor = count > 0
+            ? Colors.White
+            : (Application.Current?.RequestedTheme == AppTheme.Dark
+                ? Colors.White
+                : Colors.Black);
+    }
+    private void MarkRead_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_selectedBook == null) return;
+
+            LibraryData.RecordBookRead(_selectedBook.CalibreKey);
+            UpdateMarkReadButton(_selectedBook);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"MarkRead_Click: {ex}");
+        }
+    }
+
 
     // ── Fandom list ───────────────────────────────────────────────────────────
 
@@ -1092,6 +1133,7 @@ private async Task SendToKindleAndroidAsync(string cachedFilePath, string kindle
         var desc = !string.IsNullOrWhiteSpace(book.Description)
             ? book.Description
             : "No description available.";
-        return $"{desc}\n\n📁 {book.FilePath}";
+        //return $"{desc}\n\n📁 {book.FilePath}";
+        return $"{desc}";
     }
 }

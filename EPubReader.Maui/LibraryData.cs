@@ -42,6 +42,8 @@ public static class LibraryData
         public string ReaderTextColor { get; set; } = "#DCDCDC";
         public string ReaderFont { get; set; } = "Georgia";
         public LastReadBookInfo? LastReadBook { get; set; }
+        public ReadingStats Stats { get; set; } = new();
+
     }
 
     // ── In-memory state ───────────────────────────────────────────────────────
@@ -51,6 +53,8 @@ public static class LibraryData
     private static HashSet<string> _standaloneFandoms = new(StringComparer.OrdinalIgnoreCase);
     private static Dictionary<string, ReadingPosition> _positions = new();
     private static LastReadBookInfo? _lastReadBook;
+    private static ReadingStats _stats = new();
+
     private static string _theme = "Dark";
     private static string _libraryPath = ""; 
     private static string _saveDataPath = "";
@@ -71,7 +75,6 @@ public static class LibraryData
         public string CalibreKey { get; set; } = "";
         public string Title { get; set; } = "";
         public string Author { get; set; } = "";
-        public string FilePath { get; set; } = "";
         public string? CoverImagePath { get; set; }
     }
 
@@ -133,7 +136,6 @@ public static class LibraryData
             CalibreKey = book.CalibreKey,
             Title = book.Title,
             Author = book.Author,
-            FilePath = book.FilePath,
             CoverImagePath = book.CoverImagePath
         };
         SaveData();
@@ -261,6 +263,128 @@ public static class LibraryData
         catch (Exception ex) { Debug.WriteLine($"Error getting categories for fandom: {ex}"); return new(); }
     }
 
+
+    // -- STATS -------------------------
+    public class ReadingStats
+    {
+        /// <summary>Total seconds the user spent on the ReaderPage across all sessions.</summary>
+        public long TotalReadingSeconds { get; set; } = 0;
+
+        /// <summary>
+        /// CalibreKey → number of times the user has marked the book as read.
+        /// Increments on each "Mark as Read" tap, so re-reads count separately.
+        /// </summary>    
+        public Dictionary<string, List<DateTime>> ReadHistory { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+
+        /// <summary>Seconds spent reading, bucketed by fandom name.</summary>
+        public Dictionary<string, long> SecondsPerFandom { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+    /// <summary>
+    /// Call this when the user leaves the ReaderPage. Adds <paramref name="seconds"/>
+    /// to the global total and to the per-fandom bucket for the book being read.
+    /// </summary>
+    public static void RecordReadingSession(string calibreKey, long seconds)
+    {
+        if (seconds <= 0) return;
+        try
+        {
+            _stats.TotalReadingSeconds += seconds;
+
+            var fandom = GetFandom(calibreKey);
+            if (string.IsNullOrWhiteSpace(fandom))
+                fandom = "(No Fandom)";
+
+            if (!_stats.SecondsPerFandom.ContainsKey(fandom))
+                _stats.SecondsPerFandom[fandom] = 0;
+            _stats.SecondsPerFandom[fandom] += seconds;
+
+            SaveData();
+        }
+        catch (Exception ex) { Debug.WriteLine($"Error recording reading session: {ex}"); }
+    }
+
+    /// <summary>
+    /// Records the current UTC time as a "read" event for this book.
+    /// Each call appends a timestamp, so re-reads are fully tracked.
+    /// </summary>
+    public static void RecordBookRead(string calibreKey)
+    {
+        if (string.IsNullOrWhiteSpace(calibreKey)) return;
+        try
+        {
+            if (!_stats.ReadHistory.ContainsKey(calibreKey))
+                _stats.ReadHistory[calibreKey] = new List<DateTime>();
+
+            _stats.ReadHistory[calibreKey].Add(DateTime.UtcNow);
+            SaveData();
+        }
+        catch (Exception ex) { Debug.WriteLine($"Error recording book read: {ex}"); }
+    }
+
+    /// <summary>Returns the raw stats object (for serialisation / future display).</summary>
+    public static ReadingStats GetStats() => _stats;
+
+    /// <summary>Total seconds spent on the ReaderPage across all sessions.</summary>
+    public static long GetTotalReadingSeconds() => _stats.TotalReadingSeconds;
+
+    /// <summary>
+    /// Total number of times any book has been marked read — sum across all books,
+    /// so re-reads count (e.g. one book read twice + one book read once = 3).
+    /// </summary>
+    public static int GetBooksReadCount() =>
+        _stats.ReadHistory.Values.Sum(list => list.Count);
+
+    /// <summary>How many times a specific book has been marked read (0 if never).</summary>
+    public static int GetReadCount(string calibreKey) =>
+        _stats.ReadHistory.TryGetValue(calibreKey, out var list) ? list.Count : 0;
+
+    /// <summary>Whether the user has ever marked this book as read at least once.</summary>
+    public static bool HasBeenRead(string calibreKey) =>
+        _stats.ReadHistory.TryGetValue(calibreKey, out var list) && list.Count > 0;
+
+    /// <summary>
+    /// All UTC timestamps when this book was marked read, oldest first.
+    /// Returns an empty list if never read.
+    /// </summary>
+    public static List<DateTime> GetReadDates(string calibreKey) =>
+        _stats.ReadHistory.TryGetValue(calibreKey, out var list)
+            ? new List<DateTime>(list)   // defensive copy
+            : new List<DateTime>();
+
+    /// <summary>
+    /// Fandom → total times books in that fandom have been marked read (re-reads included).
+    /// Books with no fandom are bucketed under "(No Fandom)".
+    /// </summary>
+    public static Dictionary<string, int> GetBooksPerFandom()
+    {
+        try
+        {
+            var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kvp in _stats.ReadHistory)
+            {
+                if (kvp.Value.Count == 0) continue;
+                var fandom = _fandoms.TryGetValue(kvp.Key, out var f) && !string.IsNullOrWhiteSpace(f)
+                    ? f : "(No Fandom)";
+                if (!result.ContainsKey(fandom)) result[fandom] = 0;
+                result[fandom] += kvp.Value.Count;
+            }
+            return result;
+        }
+        catch (Exception ex) { Debug.WriteLine($"Error computing books per fandom: {ex}"); return new(); }
+    }
+
+    /// <summary>
+    /// Fandom → seconds spent reading books in that fandom.
+    /// Returns a defensive copy so callers can't mutate internal state.
+    /// </summary>
+    public static Dictionary<string, long> GetTimePerFandom() =>
+        new Dictionary<string, long>(_stats.SecondsPerFandom, StringComparer.OrdinalIgnoreCase);
+
+
+
+
+
     // ── Load ──────────────────────────────────────────────────────────────────
 
     public static void Load()
@@ -316,6 +440,8 @@ public static class LibraryData
             _readerTextColor = root.ReaderTextColor ?? "#DCDCDC";
             _readerFont = root.ReaderFont ?? "Georgia";
             _lastReadBook = root.LastReadBook;
+            _stats = root.Stats ?? new();
+
 
             // Migrate any old platform-specific keys to normalized Calibre keys
             MigrateKeysToNormalized();
@@ -476,7 +602,9 @@ public static class LibraryData
                 ReaderFontSize = _readerFontSize,
                 ReaderTextColor = _readerTextColor,
                 ReaderFont = _readerFont,
-                LastReadBook = _lastReadBook
+                LastReadBook = _lastReadBook,
+                Stats = _stats
+
 
             };
 
