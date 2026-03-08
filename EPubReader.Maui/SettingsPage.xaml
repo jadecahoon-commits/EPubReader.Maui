@@ -1,291 +1,527 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="EPubReader.Maui.SettingsPage"
-             NavigationPage.HasNavigationBar="False">
+<ContentPage
+    x:Class="EPubReader.Maui.SettingsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    NavigationPage.HasNavigationBar="False">
 
-    <Grid BackgroundColor="{AppThemeBinding Dark=#0f0f0f, Light=#f5f5f5}"
-          ColumnDefinitions="Auto,*">
+    <Grid BackgroundColor="{AppThemeBinding Dark=#0f0f0f, Light=#f5f5f5}" ColumnDefinitions="Auto,*">
 
-        <!-- ═══ Sidebar ═══ -->
-        <Grid x:Name="Sidebar"
-              Grid.Column="0"
-              BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#e8e8e8}"
-              RowDefinitions="Auto,Auto,*"
-              WidthRequest="52"
-              Padding="0,24,0,0">
+        <!--  ═══ Sidebar ═══  -->
+        <Grid
+            x:Name="Sidebar"
+            Grid.Column="0"
+            Padding="0,24,0,0"
+            BackgroundColor="{AppThemeBinding Dark=#1a1a1a,
+                                              Light=#e8e8e8}"
+            RowDefinitions="Auto,Auto,*"
+            WidthRequest="52">
 
-            <!-- Toggle button -->
-            <Button Grid.Row="0"
-                    Text="☰"
-                    Clicked="SidebarToggle_Click"
-                    BackgroundColor="Transparent"
-                    TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                    HorizontalOptions="Fill"
-                    CornerRadius="0"
-                    Padding="0,10"
-                    FontSize="16"
-                    HeightRequest="44" />
+            <!--  Toggle button  -->
+            <Button
+                Grid.Row="0"
+                Padding="0,10"
+                BackgroundColor="Transparent"
+                Clicked="SidebarToggle_Click"
+                CornerRadius="0"
+                FontSize="16"
+                HeightRequest="44"
+                HorizontalOptions="Start"
+                Text="☰"
+                TextColor="{AppThemeBinding Dark=#bbbbbb,
+                                            Light=#555555}" />
 
-            <!-- Title — only visible when expanded -->
-            <Label x:Name="SidebarTitleLabel"
-                   Grid.Row="1"
-                   Text="Settings"
-                   FontSize="13"
-                   FontAttributes="Bold"
-                   TextColor="{AppThemeBinding Dark=White, Light=Black}"
-                   HorizontalOptions="Start"
-                   Margin="16,8,16,16"
-                   IsVisible="False" />
+            <!--  Title — only visible when expanded  -->
+            <Label
+                x:Name="SidebarTitleLabel"
+                Grid.Row="1"
+                Margin="16,8,16,16"
+                FontAttributes="Bold"
+                FontSize="13"
+                HorizontalOptions="Start"
+                IsVisible="False"
+                Text="Settings"
+                TextColor="{AppThemeBinding Dark=White,
+                                            Light=Black}" />
 
-            <!-- Nav items -->
+            <!--  Nav items  -->
             <VerticalStackLayout Grid.Row="2" Spacing="2">
 
-                <Grid x:Name="NavAppearance"
-                      ColumnDefinitions="52,*"
-                      HeightRequest="48"
-                      BackgroundColor="#E50914">
+                <Grid
+                    x:Name="NavAppearance"
+                    BackgroundColor="#E50914"
+                    ColumnDefinitions="52,*"
+                    HeightRequest="48">
                     <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="Sidebar_Tapped" CommandParameter="Appearance" />
+                        <TapGestureRecognizer CommandParameter="Appearance" Tapped="Sidebar_Tapped" />
                     </Grid.GestureRecognizers>
-                    <Label Text="🎨" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center" />
-                    <Label x:Name="NavAppearanceLabel" Grid.Column="1"
-                           Text="Appearance" FontSize="13" TextColor="White"
-                           VerticalOptions="Center" IsVisible="False" />
+                    <Label
+                        FontSize="18"
+                        HorizontalOptions="Center"
+                        Text="🎨"
+                        VerticalOptions="Center" />
+                    <Label
+                        x:Name="NavAppearanceLabel"
+                        Grid.Column="1"
+                        FontSize="13"
+                        IsVisible="False"
+                        Text="Appearance"
+                        TextColor="White"
+                        VerticalOptions="Center" />
                 </Grid>
 
-                <Grid x:Name="NavLibrary"
-                      ColumnDefinitions="52,*"
-                      HeightRequest="48"
-                      BackgroundColor="Transparent">
+                <Grid
+                    x:Name="NavLibrary"
+                    BackgroundColor="Transparent"
+                    ColumnDefinitions="52,*"
+                    HeightRequest="48">
                     <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="Sidebar_Tapped" CommandParameter="Library" />
+                        <TapGestureRecognizer CommandParameter="Library" Tapped="Sidebar_Tapped" />
                     </Grid.GestureRecognizers>
-                    <Label Text="📚" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center" />
-                    <Label x:Name="NavLibraryLabel" Grid.Column="1"
-                           Text="Library" FontSize="13"
-                           TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                           VerticalOptions="Center" IsVisible="False" />
+                    <Label
+                        FontSize="18"
+                        HorizontalOptions="Center"
+                        Text="📚"
+                        VerticalOptions="Center" />
+                    <Label
+                        x:Name="NavLibraryLabel"
+                        Grid.Column="1"
+                        FontSize="13"
+                        IsVisible="False"
+                        Text="Library"
+                        TextColor="{AppThemeBinding Dark=#bbbbbb,
+                                                    Light=#555555}"
+                        VerticalOptions="Center" />
                 </Grid>
 
-                <Grid x:Name="NavSync"
-                      ColumnDefinitions="52,*"
-                      HeightRequest="48"
-                      BackgroundColor="Transparent">
+                <Grid
+                    x:Name="NavSync"
+                    BackgroundColor="Transparent"
+                    ColumnDefinitions="52,*"
+                    HeightRequest="48">
                     <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="Sidebar_Tapped" CommandParameter="Sync" />
+                        <TapGestureRecognizer CommandParameter="Sync" Tapped="Sidebar_Tapped" />
                     </Grid.GestureRecognizers>
-                    <Label Text="☁" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center" />
-                    <Label x:Name="NavSyncLabel" Grid.Column="1"
-                           Text="Sync" FontSize="13"
-                           TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                           VerticalOptions="Center" IsVisible="False" />
+                    <Label
+                        FontSize="18"
+                        HorizontalOptions="Center"
+                        Text="☁"
+                        VerticalOptions="Center" />
+                    <Label
+                        x:Name="NavSyncLabel"
+                        Grid.Column="1"
+                        FontSize="13"
+                        IsVisible="False"
+                        Text="Sync"
+                        TextColor="{AppThemeBinding Dark=#bbbbbb,
+                                                    Light=#555555}"
+                        VerticalOptions="Center" />
                 </Grid>
 
-                <Grid x:Name="NavGoogleDrive"
-                      ColumnDefinitions="52,*"
-                      HeightRequest="48"
-                      BackgroundColor="Transparent">
+                <Grid
+                    x:Name="NavGoogleDrive"
+                    BackgroundColor="Transparent"
+                    ColumnDefinitions="52,*"
+                    HeightRequest="48">
                     <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="Sidebar_Tapped" CommandParameter="GoogleDrive" />
+                        <TapGestureRecognizer CommandParameter="GoogleDrive" Tapped="Sidebar_Tapped" />
                     </Grid.GestureRecognizers>
-                    <Label Text="🔵" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center" />
-                    <Label x:Name="NavGoogleDriveLabel" Grid.Column="1"
-                           Text="Google Drive" FontSize="13"
-                           TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                           VerticalOptions="Center" IsVisible="False" />
+                    <Label
+                        FontSize="18"
+                        HorizontalOptions="Center"
+                        Text="🔵"
+                        VerticalOptions="Center" />
+                    <Label
+                        x:Name="NavGoogleDriveLabel"
+                        Grid.Column="1"
+                        FontSize="13"
+                        IsVisible="False"
+                        Text="Google Drive"
+                        TextColor="{AppThemeBinding Dark=#bbbbbb,
+                                                    Light=#555555}"
+                        VerticalOptions="Center" />
                 </Grid>
 
-                <Grid x:Name="NavKindle"
-                      ColumnDefinitions="52,*"
-                      HeightRequest="48"
-                      BackgroundColor="Transparent">
+                <Grid
+                    x:Name="NavKindle"
+                    BackgroundColor="Transparent"
+                    ColumnDefinitions="52,*"
+                    HeightRequest="48">
                     <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="Sidebar_Tapped" CommandParameter="Kindle" />
+                        <TapGestureRecognizer CommandParameter="Kindle" Tapped="Sidebar_Tapped" />
                     </Grid.GestureRecognizers>
-                    <Label Text="📧" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center" />
-                    <Label x:Name="NavKindleLabel" Grid.Column="1"
-                           Text="Email &amp; Kindle" FontSize="13"
-                           TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                           VerticalOptions="Center" IsVisible="False" />
+                    <Label
+                        FontSize="18"
+                        HorizontalOptions="Center"
+                        Text="📧"
+                        VerticalOptions="Center" />
+                    <Label
+                        x:Name="NavKindleLabel"
+                        Grid.Column="1"
+                        FontSize="13"
+                        IsVisible="False"
+                        Text="Email &amp; Kindle"
+                        TextColor="{AppThemeBinding Dark=#bbbbbb,
+                                                    Light=#555555}"
+                        VerticalOptions="Center" />
                 </Grid>
 
             </VerticalStackLayout>
         </Grid>
 
-        <!-- ═══ Content panel ═══ -->
+        <!--  ═══ Content panel ═══  -->
         <ScrollView Grid.Column="1" Padding="40,32">
             <VerticalStackLayout Spacing="0">
 
-                <!-- ── Appearance ── -->
-                <VerticalStackLayout x:Name="PanelAppearance" Spacing="24" IsVisible="True">
+                <!--  ── Appearance ──  -->
+                <VerticalStackLayout
+                    x:Name="PanelAppearance"
+                    IsVisible="True"
+                    Spacing="24">
 
-                    <Label Text="Appearance" FontSize="22" FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Dark=White, Light=Black}" Margin="0,0,0,8" />
+                    <Label
+                        Margin="0,0,0,8"
+                        FontAttributes="Bold"
+                        FontSize="22"
+                        Text="Appearance"
+                        TextColor="{AppThemeBinding Dark=White,
+                                                    Light=Black}" />
 
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout>
-                            <Label Text="Reader Text" FontSize="15" FontAttributes="Bold"
-                                   TextColor="{AppThemeBinding Dark=White, Light=Black}" />
-                            <Label Text="Adjust font size and text colour used while reading"
-                                   FontSize="12" TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                                   Margin="0,3,0,0" />
+                            <Label
+                                FontAttributes="Bold"
+                                FontSize="15"
+                                Text="Reader Text"
+                                TextColor="{AppThemeBinding Dark=White,
+                                                            Light=Black}" />
+                            <Label
+                                Margin="0,3,0,0"
+                                FontSize="12"
+                                Text="Adjust font size and text colour used while reading"
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#999999}" />
                         </VerticalStackLayout>
-                        <Button x:Name="ReaderSettingsButton" Grid.Column="1"
-                                Text="Aa" Clicked="ReaderSettings_Click"
-                                BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e0e0e0}"
-                                TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}"
-                                WidthRequest="44" HeightRequest="36" CornerRadius="4"
-                                FontSize="12" Padding="0" VerticalOptions="Center" />
+                        <Button
+                            x:Name="ReaderSettingsButton"
+                            Grid.Column="1"
+                            Padding="0"
+                            BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
+                                                              Light=#e0e0e0}"
+                            Clicked="ReaderSettings_Click"
+                            CornerRadius="4"
+                            FontSize="12"
+                            HeightRequest="36"
+                            Text="Aa"
+                            TextColor="{AppThemeBinding Dark=#bbbbbb,
+                                                        Light=#555555}"
+                            VerticalOptions="Center"
+                            WidthRequest="44" />
                     </Grid>
 
                     <BoxView HeightRequest="1" Color="{AppThemeBinding Dark=#2a2a2a, Light=#dddddd}" />
 
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout>
-                            <Label Text="Dark Mode" FontSize="15" FontAttributes="Bold"
-                                   TextColor="{AppThemeBinding Dark=White, Light=Black}" />
-                            <Label Text="Switch between light and dark interface"
-                                   FontSize="12" TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                                   Margin="0,3,0,0" />
+                            <Label
+                                FontAttributes="Bold"
+                                FontSize="15"
+                                Text="Dark Mode"
+                                TextColor="{AppThemeBinding Dark=White,
+                                                            Light=Black}" />
+                            <Label
+                                Margin="0,3,0,0"
+                                FontSize="12"
+                                Text="Switch between light and dark interface"
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#999999}" />
                         </VerticalStackLayout>
-                        <Switch x:Name="DarkModeToggle" Grid.Column="1"
-                                VerticalOptions="Center" Toggled="DarkModeToggle_Toggled" />
+                        <Switch
+                            x:Name="DarkModeToggle"
+                            Grid.Column="1"
+                            Toggled="DarkModeToggle_Toggled"
+                            VerticalOptions="Center" />
                     </Grid>
 
                 </VerticalStackLayout>
 
-                <!-- ── Library ── -->
-                <VerticalStackLayout x:Name="PanelLibrary" Spacing="24" IsVisible="False">
+                <!--  ── Library ──  -->
+                <VerticalStackLayout
+                    x:Name="PanelLibrary"
+                    IsVisible="False"
+                    Spacing="24">
 
-                    <Label Text="Library" FontSize="22" FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Dark=White, Light=Black}" Margin="0,0,0,8" />
+                    <Label
+                        Margin="0,0,0,8"
+                        FontAttributes="Bold"
+                        FontSize="22"
+                        Text="Library"
+                        TextColor="{AppThemeBinding Dark=White,
+                                                    Light=Black}" />
 
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout>
-                            <Label Text="Library Folder" FontSize="15" FontAttributes="Bold"
-                                   TextColor="{AppThemeBinding Dark=White, Light=Black}" />
-                            <Label Text="Root folder containing your Calibre library"
-                                   FontSize="12" TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                                   Margin="0,3,0,0" />
-                            <Label x:Name="LibraryPathLabel" FontSize="12" TextColor="#E50914"
-                                   Margin="0,4,0,0" LineBreakMode="TailTruncation" />
+                            <Label
+                                FontAttributes="Bold"
+                                FontSize="15"
+                                Text="Library Folder"
+                                TextColor="{AppThemeBinding Dark=White,
+                                                            Light=Black}" />
+                            <Label
+                                Margin="0,3,0,0"
+                                FontSize="12"
+                                Text="Root folder containing your Calibre library"
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#999999}" />
+                            <Label
+                                x:Name="LibraryPathLabel"
+                                Margin="0,4,0,0"
+                                FontSize="12"
+                                LineBreakMode="TailTruncation"
+                                TextColor="#E50914" />
                         </VerticalStackLayout>
-                        <Button Grid.Column="1" Text="Browse" Clicked="BrowseLibrary_Click"
-                                BackgroundColor="#E50914" TextColor="White" CornerRadius="4"
-                                Padding="16,8" VerticalOptions="Start" Margin="12,0,0,0" />
+                        <Button
+                            Grid.Column="1"
+                            Margin="12,0,0,0"
+                            Padding="16,8"
+                            BackgroundColor="#E50914"
+                            Clicked="BrowseLibrary_Click"
+                            CornerRadius="4"
+                            Text="Browse"
+                            TextColor="White"
+                            VerticalOptions="Start" />
                     </Grid>
 
                 </VerticalStackLayout>
 
-                <!-- ── Sync ── -->
-                <VerticalStackLayout x:Name="PanelSync" Spacing="24" IsVisible="False">
+                <!--  ── Sync ──  -->
+                <VerticalStackLayout
+                    x:Name="PanelSync"
+                    IsVisible="False"
+                    Spacing="24">
 
-                    <Label Text="Sync" FontSize="22" FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Dark=White, Light=Black}" Margin="0,0,0,8" />
+                    <Label
+                        Margin="0,0,0,8"
+                        FontAttributes="Bold"
+                        FontSize="22"
+                        Text="Sync"
+                        TextColor="{AppThemeBinding Dark=White,
+                                                    Light=Black}" />
 
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout>
-                            <Label Text="Save Data Folder" FontSize="15" FontAttributes="Bold"
-                                   TextColor="{AppThemeBinding Dark=White, Light=Black}" />
-                            <Label Text="Where fandoms, categories &amp; reading positions are stored. Point this to a cloud-synced folder (OneDrive, Dropbox, etc.) to sync across devices."
-                                   FontSize="12" TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                                   Margin="0,3,0,0" LineBreakMode="WordWrap" />
-                            <Label x:Name="SaveDataPathLabel" FontSize="12" TextColor="#E50914"
-                                   Margin="0,4,0,0" LineBreakMode="TailTruncation" />
+                            <Label
+                                FontAttributes="Bold"
+                                FontSize="15"
+                                Text="Save Data Folder"
+                                TextColor="{AppThemeBinding Dark=White,
+                                                            Light=Black}" />
+                            <Label
+                                Margin="0,3,0,0"
+                                FontSize="12"
+                                LineBreakMode="WordWrap"
+                                Text="Where fandoms, categories &amp; reading positions are stored. Point this to a cloud-synced folder (OneDrive, Dropbox, etc.) to sync across devices."
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#999999}" />
+                            <Label
+                                x:Name="SaveDataPathLabel"
+                                Margin="0,4,0,0"
+                                FontSize="12"
+                                LineBreakMode="TailTruncation"
+                                TextColor="#E50914" />
                         </VerticalStackLayout>
-                        <Button Grid.Column="1" Text="Browse" Clicked="BrowseSaveData_Click"
-                                BackgroundColor="#E50914" TextColor="White" CornerRadius="4"
-                                Padding="16,8" VerticalOptions="Start" Margin="12,0,0,0" />
+                        <Button
+                            Grid.Column="1"
+                            Margin="12,0,0,0"
+                            Padding="16,8"
+                            BackgroundColor="#E50914"
+                            Clicked="BrowseSaveData_Click"
+                            CornerRadius="4"
+                            Text="Browse"
+                            TextColor="White"
+                            VerticalOptions="Start" />
                     </Grid>
 
-                    <Border BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}"
-                            Stroke="{AppThemeBinding Dark=#333333, Light=#dddddd}"
-                            StrokeThickness="1" StrokeShape="RoundRectangle 6" Padding="14,10">
-                        <Label Text="💡  Set the same Save Data Folder on each device to keep everything in sync."
-                               FontSize="12" TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                               LineBreakMode="WordWrap" />
+                    <Border
+                        Padding="14,10"
+                        BackgroundColor="{AppThemeBinding Dark=#1a1a1a,
+                                                          Light=#f0f0f0}"
+                        Stroke="{AppThemeBinding Dark=#333333,
+                                                 Light=#dddddd}"
+                        StrokeShape="RoundRectangle 6"
+                        StrokeThickness="1">
+                        <Label
+                            FontSize="12"
+                            LineBreakMode="WordWrap"
+                            Text="💡  Set the same Save Data Folder on each device to keep everything in sync."
+                            TextColor="{AppThemeBinding Dark=#888888,
+                                                        Light=#999999}" />
                     </Border>
 
                 </VerticalStackLayout>
 
-                <!-- ── Google Drive ── -->
-                <VerticalStackLayout x:Name="PanelGoogleDrive" Spacing="24" IsVisible="False">
+                <!--  ── Google Drive ──  -->
+                <VerticalStackLayout
+                    x:Name="PanelGoogleDrive"
+                    IsVisible="False"
+                    Spacing="24">
 
-                    <Label Text="Google Drive" FontSize="22" FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Dark=White, Light=Black}" Margin="0,0,0,8" />
+                    <Label
+                        Margin="0,0,0,8"
+                        FontAttributes="Bold"
+                        FontSize="22"
+                        Text="Google Drive"
+                        TextColor="{AppThemeBinding Dark=White,
+                                                    Light=Black}" />
 
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout Spacing="3">
-                            <Label Text="Sign in to upload and download library-data.json directly to your Google Drive."
-                                   FontSize="12" TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                                   LineBreakMode="WordWrap" />
-                            <Label x:Name="GoogleDriveStatusLabel" FontSize="12" TextColor="#E50914"
-                                   Margin="0,4,0,0" />
-                            <Label x:Name="GoogleDriveLibraryLabel" FontSize="12"
-                                   TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                                   Margin="0,2,0,0" />
+                            <Label
+                                FontSize="12"
+                                LineBreakMode="WordWrap"
+                                Text="Sign in to upload and download library-data.json directly to your Google Drive."
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#999999}" />
+                            <Label
+                                x:Name="GoogleDriveStatusLabel"
+                                Margin="0,4,0,0"
+                                FontSize="12"
+                                TextColor="#E50914" />
+                            <Label
+                                x:Name="GoogleDriveLibraryLabel"
+                                Margin="0,2,0,0"
+                                FontSize="12"
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#999999}" />
                         </VerticalStackLayout>
-                        <Button x:Name="GoogleDriveButton" Grid.Column="1"
-                                Text="Sign In" Clicked="GoogleDrive_Click"
-                                BackgroundColor="#4285F4" TextColor="White" CornerRadius="4"
-                                Padding="16,8" VerticalOptions="Start" Margin="12,0,0,0" />
+                        <Button
+                            x:Name="GoogleDriveButton"
+                            Grid.Column="1"
+                            Margin="12,0,0,0"
+                            Padding="16,8"
+                            BackgroundColor="#4285F4"
+                            Clicked="GoogleDrive_Click"
+                            CornerRadius="4"
+                            Text="Sign In"
+                            TextColor="White"
+                            VerticalOptions="Start" />
                     </Grid>
 
-                    <Grid x:Name="GoogleDriveActionsGrid"
-                          RowDefinitions="Auto,Auto,Auto" RowSpacing="8" IsVisible="False">
+                    <Grid
+                        x:Name="GoogleDriveActionsGrid"
+                        IsVisible="False"
+                        RowDefinitions="Auto,Auto,Auto"
+                        RowSpacing="8">
                         <!--<Button Grid.Row="0" Text="⬆  Upload to Drive" Clicked="GoogleDriveUpload_Click"
                                 BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
                                 TextColor="{AppThemeBinding Dark=White, Light=Black}"
                                 CornerRadius="4" Padding="12,8" FontSize="13" HorizontalOptions="Fill" />-->
-                        <Button Grid.Row="1" Text="⬇  Download from Drive" Clicked="GoogleDriveDownload_Click"
-                                BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
-                                TextColor="{AppThemeBinding Dark=White, Light=Black}"
-                                CornerRadius="4" Padding="12,8" FontSize="13" HorizontalOptions="Fill" />
-                        <Button Grid.Row="2" Text="📁  Set Drive Library Location" Clicked="GoogleDrivePickFolder_Click"
-                                BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
-                                TextColor="{AppThemeBinding Dark=White, Light=Black}"
-                                CornerRadius="4" Padding="12,8" FontSize="13" HorizontalOptions="Fill" />
+                        <Button
+                            Grid.Row="1"
+                            Padding="12,8"
+                            BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
+                                                              Light=#e8e8e8}"
+                            Clicked="GoogleDriveDownload_Click"
+                            CornerRadius="4"
+                            FontSize="13"
+                            HorizontalOptions="Fill"
+                            Text="⬇  Download from Drive"
+                            TextColor="{AppThemeBinding Dark=White,
+                                                        Light=Black}" />
+                        <Button
+                            Grid.Row="2"
+                            Padding="12,8"
+                            BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
+                                                              Light=#e8e8e8}"
+                            Clicked="GoogleDrivePickFolder_Click"
+                            CornerRadius="4"
+                            FontSize="13"
+                            HorizontalOptions="Fill"
+                            Text="📁  Set Drive Library Location"
+                            TextColor="{AppThemeBinding Dark=White,
+                                                        Light=Black}" />
                     </Grid>
 
-                    <Button x:Name="GoogleDriveSyncButton"
-                            Text="🔄  Sync Drive Library Index" Clicked="GoogleDriveSyncLibrary_Click"
-                            BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e8e8e8}"
-                            TextColor="{AppThemeBinding Dark=White, Light=Black}"
-                            CornerRadius="4" Padding="12,8" FontSize="13" HorizontalOptions="Fill" />
+                    <Button
+                        x:Name="GoogleDriveSyncButton"
+                        Padding="12,8"
+                        BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
+                                                          Light=#e8e8e8}"
+                        Clicked="GoogleDriveSyncLibrary_Click"
+                        CornerRadius="4"
+                        FontSize="13"
+                        HorizontalOptions="Fill"
+                        Text="🔄  Sync Drive Library Index"
+                        TextColor="{AppThemeBinding Dark=White,
+                                                    Light=Black}" />
 
-                    <Label x:Name="GoogleDriveActionStatus" FontSize="12"
-                           TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                           IsVisible="False" HorizontalTextAlignment="Center" />
+                    <Label
+                        x:Name="GoogleDriveActionStatus"
+                        FontSize="12"
+                        HorizontalTextAlignment="Center"
+                        IsVisible="False"
+                        TextColor="{AppThemeBinding Dark=#888888,
+                                                    Light=#999999}" />
 
                 </VerticalStackLayout>
 
-                <!-- ── Email & Kindle ── -->
-                <VerticalStackLayout x:Name="PanelKindle" Spacing="24" IsVisible="False">
+                <!--  ── Email & Kindle ──  -->
+                <VerticalStackLayout
+                    x:Name="PanelKindle"
+                    IsVisible="False"
+                    Spacing="24">
 
-                    <Label Text="Email &amp; Kindle" FontSize="22" FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Dark=White, Light=Black}" Margin="0,0,0,8" />
+                    <Label
+                        Margin="0,0,0,8"
+                        FontAttributes="Bold"
+                        FontSize="22"
+                        Text="Email &amp; Kindle"
+                        TextColor="{AppThemeBinding Dark=White,
+                                                    Light=Black}" />
 
                     <VerticalStackLayout Spacing="8">
-                        <Label Text="Send-to-Kindle address" FontSize="15" FontAttributes="Bold"
-                               TextColor="{AppThemeBinding Dark=White, Light=Black}" />
-                        <Label Text="Find this in your Amazon account under Manage Your Content and Devices → Preferences → Personal Document Settings."
-                               FontSize="12" TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                               LineBreakMode="WordWrap" />
-                        <Entry x:Name="KindleEmailEntry" Placeholder="yourname@kindle.com"
-                               Keyboard="Email"
-                               BackgroundColor="{AppThemeBinding Dark=#1e1e1e, Light=#ffffff}"
-                               TextColor="{AppThemeBinding Dark=White, Light=Black}"
-                               PlaceholderColor="{AppThemeBinding Dark=#555555, Light=#aaaaaa}"
-                               FontSize="14" />
+                        <Label
+                            FontAttributes="Bold"
+                            FontSize="15"
+                            Text="Send-to-Kindle address"
+                            TextColor="{AppThemeBinding Dark=White,
+                                                        Light=Black}" />
+                        <Label
+                            FontSize="12"
+                            LineBreakMode="WordWrap"
+                            Text="Find this in your Amazon account under Manage Your Content and Devices → Preferences → Personal Document Settings."
+                            TextColor="{AppThemeBinding Dark=#888888,
+                                                        Light=#999999}" />
+                        <Entry
+                            x:Name="KindleEmailEntry"
+                            BackgroundColor="{AppThemeBinding Dark=#1e1e1e,
+                                                              Light=#ffffff}"
+                            FontSize="14"
+                            Keyboard="Email"
+                            Placeholder="yourname@kindle.com"
+                            PlaceholderColor="{AppThemeBinding Dark=#555555,
+                                                               Light=#aaaaaa}"
+                            TextColor="{AppThemeBinding Dark=White,
+                                                        Light=Black}" />
                     </VerticalStackLayout>
 
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                        <Button x:Name="SaveEmailButton" Text="Save" Clicked="SaveEmail_Click"
-                                BackgroundColor="#E50914" TextColor="White" CornerRadius="4" Padding="20,8" />
-                        <Label x:Name="EmailSaveStatusLabel" Grid.Column="1" FontSize="12"
-                               TextColor="{AppThemeBinding Dark=#888888, Light=#999999}"
-                               VerticalOptions="Center" IsVisible="False" />
+                        <Button
+                            x:Name="SaveEmailButton"
+                            Padding="20,8"
+                            BackgroundColor="#E50914"
+                            Clicked="SaveEmail_Click"
+                            CornerRadius="4"
+                            Text="Save"
+                            TextColor="White" />
+                        <Label
+                            x:Name="EmailSaveStatusLabel"
+                            Grid.Column="1"
+                            FontSize="12"
+                            IsVisible="False"
+                            TextColor="{AppThemeBinding Dark=#888888,
+                                                        Light=#999999}"
+                            VerticalOptions="Center" />
                     </Grid>
 
                 </VerticalStackLayout>

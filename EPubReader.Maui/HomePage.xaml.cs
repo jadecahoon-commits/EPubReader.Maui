@@ -218,10 +218,10 @@ public partial class HomePage : ContentPage
             BookItem? book = null;
 
 #if ANDROID
-            // Fast path: directly build the content:// URI from the CalibreKey.
-            // Avoids a full ScanLibrary call, which fails for Google Drive SAF providers.
-            var resolvedUri = _scanner.ResolveFileUriFromCalibreKey(last.CalibreKey);
-            if (!string.IsNullOrEmpty(resolvedUri))
+            // Prefer the saved FilePath (content:// URI) — works for both local SAF
+            // and Google Drive SAF where doc IDs are opaque and can't be reconstructed.
+            var savedFilePath = last.FilePath;
+            if (!string.IsNullOrEmpty(savedFilePath) && savedFilePath.StartsWith("content://"))
             {
                 book = new BookItem
                 {
@@ -229,12 +229,28 @@ public partial class HomePage : ContentPage
                     Title = last.Title,
                     Author = last.Author,
                     CoverImagePath = last.CoverImagePath,
-                    FilePath = resolvedUri,
+                    FilePath = savedFilePath,
                     FileType = System.IO.Path.GetExtension(last.CalibreKey).TrimStart('.')
                 };
             }
+            else
+            {
+                // Fallback: try to reconstruct the URI from the CalibreKey (local SAF only)
+                var resolvedUri = _scanner.ResolveFileUriFromCalibreKey(last.CalibreKey);
+                if (!string.IsNullOrEmpty(resolvedUri))
+                {
+                    book = new BookItem
+                    {
+                        CalibreKey = last.CalibreKey,
+                        Title = last.Title,
+                        Author = last.Author,
+                        CoverImagePath = last.CoverImagePath,
+                        FilePath = resolvedUri,
+                        FileType = System.IO.Path.GetExtension(last.CalibreKey).TrimStart('.')
+                    };
+                }
+            }
 #endif
-
             // Fallback: full library scan (Windows / desktop, or if fast path failed)
             if (book == null)
             {

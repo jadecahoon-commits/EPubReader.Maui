@@ -395,7 +395,13 @@ public partial class ReaderPage : ContentPage
     // ── WebView events ────────────────────────────────────────────────────────
 
     private async void OnWebViewNavigated(object? sender, WebNavigatedEventArgs e)
-        => await RecalculatePagesAsync();
+    {
+        // Ignore the iframe-based nav signals and any non-successful navigations
+        if (e.Url.StartsWith("reader://") || e.Result != WebNavigationResult.Success)
+            return;
+
+        await RecalculatePagesAsync();
+    }
 
     private async void OnWebViewNavigating(object? sender, WebNavigatingEventArgs e)
     {
@@ -466,9 +472,17 @@ public partial class ReaderPage : ContentPage
         try
         {
             if (_currentPage < _totalPages - 1)
+            {
                 await GoToPageAsync(_currentPage + 1);
-            else if (_currentChapter < _chapters.Count - 1)
-                await ShowChapterAsync(_currentChapter + 1, goToLastPage: false);
+            }
+            else
+            {
+                // Use TOC-aware navigation so we skip phantom chapters
+                var navEntries = _tocEntries.Where(e => e.ChapterIndex >= 0).ToList();
+                int navIndex = navEntries.FindIndex(e => e.ChapterIndex == _currentChapter);
+                if (navIndex >= 0 && navIndex < navEntries.Count - 1)
+                    await ShowChapterAsync(navEntries[navIndex + 1].ChapterIndex);
+            }
         }
         finally { _isNavigating = false; }
     }
@@ -481,9 +495,17 @@ public partial class ReaderPage : ContentPage
         try
         {
             if (_currentPage > 0)
+            {
                 await GoToPageAsync(_currentPage - 1);
-            else if (_currentChapter > 0)
-                await ShowChapterAsync(_currentChapter - 1, goToLastPage: true);
+            }
+            else
+            {
+                // Use TOC-aware navigation so we skip phantom chapters
+                var navEntries = _tocEntries.Where(e => e.ChapterIndex >= 0).ToList();
+                int navIndex = navEntries.FindIndex(e => e.ChapterIndex == _currentChapter);
+                if (navIndex > 0)
+                    await ShowChapterAsync(navEntries[navIndex - 1].ChapterIndex, goToLastPage: true);
+            }
         }
         finally { _isNavigating = false; }
     }
@@ -752,13 +774,8 @@ span {{ color: inherit; background: transparent; }}
   }};
 
   function emitNav(cmd) {{
-    var iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = 'reader://nav/' + cmd;
-    document.body.appendChild(iframe);
-    setTimeout(function() {{ document.body.removeChild(iframe); }}, 200);
-    try {{ window.location.href = 'reader://nav/' + cmd; }} catch(ex) {{}}
-  }}
+    window.location.href = 'reader://nav/' + cmd;
+}}
 
   document.addEventListener('keydown', function(e) {{
     if (e.key === 'ArrowRight') {{ e.preventDefault(); emitNav('next'); }}

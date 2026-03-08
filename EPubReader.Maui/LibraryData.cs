@@ -76,6 +76,8 @@ public static class LibraryData
         public string Title { get; set; } = "";
         public string Author { get; set; } = "";
         public string? CoverImagePath { get; set; }
+        public string? FilePath { get; set; }   // ← ADD THIS
+
     }
 
     // ── Public properties ─────────────────────────────────────────────────────
@@ -136,7 +138,8 @@ public static class LibraryData
             CalibreKey = book.CalibreKey,
             Title = book.Title,
             Author = book.Author,
-            CoverImagePath = book.CoverImagePath
+            CoverImagePath = book.CoverImagePath,
+            FilePath = book.FilePath              // ← ADD THIS
         };
         SaveData();
     }
