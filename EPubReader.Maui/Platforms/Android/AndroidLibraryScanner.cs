@@ -346,4 +346,37 @@ public class AndroidLibraryScanner : ILibraryScanner
         if (ce < 0) return null;
         return tag[ci..ce];
     }
+
+
+    /// <summary>
+    /// Resolves a content:// document URI directly from a CalibreKey ("Author/BookFolder/file.epub")
+    /// and the library tree URI. This avoids a full ScanLibrary call, which can fail for
+    /// Google Drive SAF providers whose GetChildDocuments throws.
+    /// Returns null if the URI cannot be built or the document doesn't exist.
+    /// </summary>
+    public string? ResolveFileUriFromCalibreKey(string calibreKey)
+    {
+        var libraryPath = LibraryData.LibraryPath;
+        if (!libraryPath.StartsWith("content://")) return null;
+        if (string.IsNullOrEmpty(calibreKey)) return null;
+
+        try
+        {
+            var treeUri = AndroidNet.Uri.Parse(libraryPath);
+            if (treeUri == null) return null;
+
+            var rootDocId = DocumentsContract.GetTreeDocumentId(treeUri);
+            if (rootDocId == null) return null;
+
+            // SAF document IDs for tree URIs are: "rootDocId:Author/BookFolder/file.epub"
+            var docId = $"{rootDocId}:{calibreKey}";
+            var docUri = DocumentsContract.BuildDocumentUriUsingTree(treeUri, docId);
+            return docUri?.ToString();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"ResolveFileUriFromCalibreKey failed for '{calibreKey}': {ex.Message}");
+            return null;
+        }
+    }
 }

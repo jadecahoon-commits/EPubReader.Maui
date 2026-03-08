@@ -14,4 +14,11 @@ public interface ILibraryScanner
     /// Open a readable stream for a file. On Android with SAF URIs this uses ContentResolver.
     /// </summary>
     Stream? OpenFileStream(string path);
+
+    /// <summary>
+    /// On Android: resolve a content:// URI for a book directly from its CalibreKey
+    /// without requiring a full library scan. Returns null on non-Android or on failure.
+    /// </summary>
+    string? ResolveFileUriFromCalibreKey(string calibreKey) => null;
 }
+

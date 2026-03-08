@@ -210,13 +210,37 @@ public partial class HomePage : ContentPage
 
     private async void ContinueReading_Tapped(object? sender, TappedEventArgs e)
     {
+        var last = LibraryData.LastReadBook;
+        if (last == null || string.IsNullOrEmpty(last.CalibreKey)) return;
+
         try
         {
-            var last = LibraryData.LastReadBook;
-            if (last == null) return;
+            BookItem? book = null;
 
-            var books = await Task.Run(() => _scanner.ScanLibrary(LibraryData.LibraryPath));
-            var book = books.FirstOrDefault(b => b.CalibreKey == last.CalibreKey);
+#if ANDROID
+            // Fast path: directly build the content:// URI from the CalibreKey.
+            // Avoids a full ScanLibrary call, which fails for Google Drive SAF providers.
+            var resolvedUri = _scanner.ResolveFileUriFromCalibreKey(last.CalibreKey);
+            if (!string.IsNullOrEmpty(resolvedUri))
+            {
+                book = new BookItem
+                {
+                    CalibreKey = last.CalibreKey,
+                    Title = last.Title,
+                    Author = last.Author,
+                    CoverImagePath = last.CoverImagePath,
+                    FilePath = resolvedUri,
+                    FileType = System.IO.Path.GetExtension(last.CalibreKey).TrimStart('.')
+                };
+            }
+#endif
+
+            // Fallback: full library scan (Windows / desktop, or if fast path failed)
+            if (book == null)
+            {
+                var books = await Task.Run(() => _scanner.ScanLibrary(LibraryData.LibraryPath));
+                book = books.FirstOrDefault(b => b.CalibreKey == last.CalibreKey);
+            }
 
             if (book == null)
             {
