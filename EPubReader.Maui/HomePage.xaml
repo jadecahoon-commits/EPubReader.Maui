@@ -216,9 +216,16 @@
                                                  Light=#e0e0e0}"
                         StrokeShape="RoundRectangle 12"
                         StrokeThickness="1">
-                        <Grid ColumnDefinitions="*,*">
-                            <!--  Hours read this year  -->
-                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                        <Grid
+                            ColumnDefinitions="*,*"
+                            RowDefinitions="Auto,Auto"
+                            RowSpacing="14">
+
+                            <!--  Time read this year  -->
+                            <VerticalStackLayout
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Spacing="2">
                                 <Label
                                     CharacterSpacing="0.8"
                                     FontAttributes="Bold"
@@ -238,8 +245,10 @@
                                     TextColor="{AppThemeBinding Dark=#888888,
                                                                 Light=#777777}" />
                             </VerticalStackLayout>
-                            <!--  Most-read fandom  -->
+
+                            <!--  Top fandom  -->
                             <VerticalStackLayout
+                                Grid.Row="0"
                                 Grid.Column="1"
                                 Padding="12,0,0,0"
                                 Spacing="2">
@@ -263,6 +272,58 @@
                                     TextColor="{AppThemeBinding Dark=#888888,
                                                                 Light=#777777}" />
                             </VerticalStackLayout>
+
+                            <!--  Total books read  -->
+                            <VerticalStackLayout
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Spacing="2">
+                                <Label
+                                    CharacterSpacing="0.8"
+                                    FontAttributes="Bold"
+                                    FontSize="9"
+                                    Text="📚  TOTAL BOOKS READ"
+                                    TextColor="{AppThemeBinding Dark=#666666,
+                                                                Light=#999999}" />
+                                <Label
+                                    x:Name="StatsTotalBooksLabel"
+                                    FontAttributes="Bold"
+                                    FontSize="20"
+                                    TextColor="{AppThemeBinding Dark=White,
+                                                                Light=Black}" />
+                                <Label
+                                    x:Name="StatsTotalBooksSubLabel"
+                                    FontSize="11"
+                                    TextColor="{AppThemeBinding Dark=#888888,
+                                                                Light=#777777}" />
+                            </VerticalStackLayout>
+
+                            <!--  Time read today  -->
+                            <VerticalStackLayout
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Padding="12,0,0,0"
+                                Spacing="2">
+                                <Label
+                                    CharacterSpacing="0.8"
+                                    FontAttributes="Bold"
+                                    FontSize="9"
+                                    Text="⏱  TIME READ TODAY"
+                                    TextColor="{AppThemeBinding Dark=#666666,
+                                                                Light=#999999}" />
+                                <Label
+                                    x:Name="StatsTodayTimeLabel"
+                                    FontAttributes="Bold"
+                                    FontSize="20"
+                                    TextColor="{AppThemeBinding Dark=White,
+                                                                Light=Black}" />
+                                <Label
+                                    x:Name="StatsTodayTimeSubLabel"
+                                    FontSize="11"
+                                    TextColor="{AppThemeBinding Dark=#888888,
+                                                                Light=#777777}" />
+                            </VerticalStackLayout>
+
                         </Grid>
                     </Border>
 

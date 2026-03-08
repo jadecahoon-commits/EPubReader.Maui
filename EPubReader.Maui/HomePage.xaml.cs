@@ -160,7 +160,7 @@ public partial class HomePage : ContentPage
                 .Count(dt => dt.Year == thisYear);
 
             string timeMain, timeSub;
-            if (totalSeconds <= 0)
+            if (totalSeconds <= 0 && LibraryData.GetBooksReadCount() == 0)
             {
                 StatsCard.IsVisible = false;
                 return;
@@ -198,6 +198,31 @@ public partial class HomePage : ContentPage
                 StatsTopFandomSubLabel.Text = "";
             }
 
+            // Total books read (all time)
+            var totalBooks = LibraryData.GetBooksReadCount();
+            StatsTotalBooksLabel.Text = totalBooks.ToString();
+            StatsTotalBooksSubLabel.Text = totalBooks == 1 ? "book read" : "books read";
+
+            // Time read today
+            var todaySeconds = LibraryData.GetReadingSecondsForDate(); 
+            if (todaySeconds <= 0)
+            {
+                StatsTodayTimeLabel.Text = "—";
+                StatsTodayTimeSubLabel.Text = "no reading yet";
+            }
+            else if (todaySeconds < 3600)
+            {
+                var mins = todaySeconds / 60;
+                StatsTodayTimeLabel.Text = $"{mins}m";
+                StatsTodayTimeSubLabel.Text = mins == 1 ? "minute today" : "minutes today";
+            }
+            else
+            {
+                var hrs = todaySeconds / 3600;
+                StatsTodayTimeLabel.Text = $"{hrs}h";
+                StatsTodayTimeSubLabel.Text = hrs == 1 ? "hour today" : "hours today";
+            }
+
             StatsCard.IsVisible = true;
         }
         catch (Exception ex)
@@ -221,7 +246,8 @@ public partial class HomePage : ContentPage
             // Prefer the saved FilePath (content:// URI) — works for both local SAF
             // and Google Drive SAF where doc IDs are opaque and can't be reconstructed.
             var savedFilePath = last.FilePath;
-            if (!string.IsNullOrEmpty(savedFilePath) && savedFilePath.StartsWith("content://"))
+            if (!string.IsNullOrEmpty(savedFilePath) && 
+                (savedFilePath.StartsWith("content://") || savedFilePath.StartsWith("gdrive://")))
             {
                 book = new BookItem
                 {

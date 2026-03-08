@@ -282,6 +282,8 @@ public static class LibraryData
 
         /// <summary>Seconds spent reading, bucketed by fandom name.</summary>
         public Dictionary<string, long> SecondsPerFandom { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        /// <summary>Seconds spent reading, bucketed by local date ("yyyy-MM-dd").</summary>
+        public Dictionary<string, long> SecondsPerDate { get; set; } = new();
     }
     /// <summary>
     /// Call this when the user leaves the ReaderPage. Adds <paramref name="seconds"/>
@@ -301,6 +303,11 @@ public static class LibraryData
             if (!_stats.SecondsPerFandom.ContainsKey(fandom))
                 _stats.SecondsPerFandom[fandom] = 0;
             _stats.SecondsPerFandom[fandom] += seconds;
+
+            var dateKey = DateTime.Now.ToString("yyyy-MM-dd");
+            if (!_stats.SecondsPerDate.ContainsKey(dateKey))
+                _stats.SecondsPerDate[dateKey] = 0;
+            _stats.SecondsPerDate[dateKey] += seconds;
 
             SaveData();
         }
@@ -330,6 +337,23 @@ public static class LibraryData
 
     /// <summary>Total seconds spent on the ReaderPage across all sessions.</summary>
     public static long GetTotalReadingSeconds() => _stats.TotalReadingSeconds;
+
+    /// <summary>
+    /// Seconds spent reading on a specific local date (default: today).
+    /// Returns 0 if no reading was recorded for that date.
+    /// </summary>
+    public static long GetReadingSecondsForDate(DateTime? date = null)
+    {
+        var key = (date ?? DateTime.Now).ToString("yyyy-MM-dd");
+        return _stats.SecondsPerDate.TryGetValue(key, out var s) ? s : 0;
+    }
+
+    /// <summary>
+    /// Returns a defensive copy of the full date → seconds dictionary.
+    /// Keys are "yyyy-MM-dd" local date strings.
+    /// </summary>
+    public static Dictionary<string, long> GetTimePerDate() =>
+        new Dictionary<string, long>(_stats.SecondsPerDate);
 
     /// <summary>
     /// Total number of times any book has been marked read — sum across all books,
@@ -376,6 +400,8 @@ public static class LibraryData
         }
         catch (Exception ex) { Debug.WriteLine($"Error computing books per fandom: {ex}"); return new(); }
     }
+
+    
 
     /// <summary>
     /// Fandom → seconds spent reading books in that fandom.

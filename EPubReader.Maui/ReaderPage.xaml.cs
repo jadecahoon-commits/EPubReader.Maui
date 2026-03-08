@@ -50,6 +50,13 @@ public partial class ReaderPage : ContentPage
 
         _sessionStart = DateTime.UtcNow;   // start timing this session
 
+        var window = this.Window;
+        if (window != null)
+        {
+            window.Backgrounding += OnAppBackgrounding;
+            window.Resumed += OnAppResumed;
+        }
+
         if (_loaded) return;
         _loaded = true;
         await LoadBookAsync(_filePath);
@@ -59,8 +66,26 @@ public partial class ReaderPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+
+        var window = this.Window;
+        if (window != null)
+        {
+            window.Backgrounding -= OnAppBackgrounding;
+            window.Resumed -= OnAppResumed;
+        }
         UnhookKeyboard();
         FlushReadingSession();
+    }
+
+    private void OnAppBackgrounding(object? sender, BackgroundingEventArgs e)
+    {
+        FlushReadingSession();
+        SavePosition();
+    }
+
+    private void OnAppResumed(object? sender, EventArgs e)
+    {
+        _sessionStart = DateTime.UtcNow;
     }
 
     // ── Keyboard hook (Windows) ───────────────────────────────────────────────
