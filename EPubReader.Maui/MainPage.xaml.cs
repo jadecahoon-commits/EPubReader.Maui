@@ -14,6 +14,7 @@ public partial class MainPage : ContentPage
     private const string Unsorted = "Unsorted";
     private const string Uncategorized = "Uncategorized";
     private readonly ILibraryScanner _scanner;
+    private readonly Dictionary<string, VerticalStackLayout> _sectionViews = new(StringComparer.OrdinalIgnoreCase);
 
 
     public MainPage()
@@ -390,6 +391,7 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
     {
         _selectedBook = null;
         _lastSelectedCard = null;
+        _sectionViews.Clear();
         DescriptionPanel.IsVisible = false;
 
         var fandomBooks = _books.Where(b =>
@@ -428,6 +430,13 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
         return new DataTemplate(() =>
         {
             var section = new VerticalStackLayout { Margin = new Thickness(0, 0, 0, 32) };
+
+            // Register as soon as BindingContext is set (happens after template returns)
+            section.BindingContextChanged += (s, _) =>
+            {
+                if (section.BindingContext is CategorySection cs)
+                    _sectionViews[cs.Name] = section;
+            };
 
             // Category header row
             var headerStack = new HorizontalStackLayout { Spacing = 12, Margin = new Thickness(0, 0, 0, 12) };
@@ -697,10 +706,36 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
 
             DescriptionPanel.IsVisible = true;
+            // Scroll so the selected category row is centred in the viewport
+            _ = ScrollToCategoryAsync(book.Category);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error selecting book: {ex}");
+        }
+    }
+
+    private async Task ScrollToCategoryAsync(string categoryName)
+    {
+        try
+        {
+            await Task.Delay(50); // let layout settle after panel becomes visible
+            if (!_sectionViews.TryGetValue(categoryName, out var sectionView)) return;
+
+            // Get the Y position of the section relative to the scroll content
+            var sectionY = sectionView.Y;
+            var sectionHeight = sectionView.Height;
+            var viewportHeight = CategoryScrollView.Height;
+
+            // Target: centre of the section in the middle of the viewport
+            var targetY = sectionY - (viewportHeight / 2) + (sectionHeight / 2);
+            targetY = Math.Max(0, targetY);
+
+            await CategoryScrollView.ScrollToAsync(0, targetY, animated: true);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"ScrollToCategoryAsync: {ex.Message}");
         }
     }
 
@@ -828,6 +863,8 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
 
             DescriptionPanel.IsVisible = true;
+            _ = ScrollToCategoryAsync(book.Category);
+
         }
         catch (Exception ex)
         {
