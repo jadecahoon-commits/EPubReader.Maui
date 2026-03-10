@@ -178,13 +178,13 @@
                     Padding="20,16"
                     BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
                                                       Light=#ffffff}"
-                    HeightRequest="200"
+                    HeightRequest="240"
                     IsVisible="False"
                     Stroke="{AppThemeBinding Dark=#3a3a3a,
                                              Light=#e0e0e0}"
                     StrokeShape="RoundRectangle 8"
                     StrokeThickness="1">
-                    <Grid RowDefinitions="Auto,Auto,*, Auto">
+                    <Grid RowDefinitions="Auto,Auto,*,Auto, Auto">
                         <HorizontalStackLayout Margin="0,0,0,6" Spacing="12">
                             <Label
                                 x:Name="SelectedBookTitle"
@@ -224,55 +224,21 @@
                         </ScrollView>
 
 
-
-                        <!--  Action row  -->
+                        <!--  Category row  -->
                         <Grid
                             Grid.Row="3"
-                            Margin="0,12,0,0"
-                            ColumnDefinitions="*,Auto,Auto,Auto,Auto">
-                            <Grid x:Name="CategoryInputWrapper">
-                                <Entry
-                                    x:Name="CategoryInput"
-                                    BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
-                                                                      Light=#ffffff}"
-                                    FontSize="13"
-                                    Placeholder="Category..."
-                                    TextChanged="CategoryInput_TextChanged"
-                                    TextColor="{AppThemeBinding Dark=White,
-                                                                Light=Black}"
-                                    Unfocused="CategoryInput_Unfocused" />
-                                <!--  Autocomplete dropdown — floats below the Entry via negative margin  -->
-                                <Border
-                                    x:Name="CategorySuggestionsBorder"
-                                    Margin="0,40,0,0"
-                                    BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
-                                                                      Light=#ffffff}"
-                                    IsVisible="False"
-                                    MaximumHeightRequest="160"
-                                    Stroke="{AppThemeBinding Dark=#444444,
-                                                             Light=#cccccc}"
-                                    StrokeShape="RoundRectangle 4"
-                                    StrokeThickness="1"
-                                    VerticalOptions="Start"
-                                    ZIndex="10">
-                                    <CollectionView
-                                        x:Name="CategorySuggestions"
-                                        BackgroundColor="Transparent"
-                                        SelectionChanged="CategorySuggestion_SelectionChanged"
-                                        SelectionMode="Single">
-                                        <CollectionView.ItemTemplate>
-                                            <DataTemplate>
-                                                <Label
-                                                    Padding="10,8"
-                                                    FontSize="13"
-                                                    Text="{Binding .}"
-                                                    TextColor="{AppThemeBinding Dark=White,
-                                                                                Light=Black}" />
-                                            </DataTemplate>
-                                        </CollectionView.ItemTemplate>
-                                    </CollectionView>
-                                </Border>
-                            </Grid>
+                            Margin="0,10,0,0"
+                            ColumnDefinitions="*,Auto">
+                            <Entry
+                                x:Name="CategoryInput"
+                                BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
+                                                                  Light=#ffffff}"
+                                FontSize="13"
+                                Placeholder="Category..."
+                                TextChanged="CategoryInput_TextChanged"
+                                TextColor="{AppThemeBinding Dark=White,
+                                                            Light=Black}"
+                                Unfocused="CategoryInput_Unfocused" />
                             <Button
                                 Grid.Column="1"
                                 Margin="8,0,0,0"
@@ -282,9 +248,49 @@
                                 CornerRadius="4"
                                 Text="Save"
                                 TextColor="White" />
+
+                            <!--  Autocomplete dropdown  -->
+                            <Border
+                                x:Name="CategorySuggestionsBorder"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="2"
+                                Margin="0,40,0,0"
+                                BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
+                                                                  Light=#ffffff}"
+                                IsVisible="False"
+                                MaximumHeightRequest="160"
+                                Stroke="{AppThemeBinding Dark=#444444,
+                                                         Light=#cccccc}"
+                                StrokeShape="RoundRectangle 4"
+                                StrokeThickness="1"
+                                VerticalOptions="Start"
+                                ZIndex="10">
+                                <CollectionView
+                                    x:Name="CategorySuggestions"
+                                    BackgroundColor="Transparent"
+                                    SelectionChanged="CategorySuggestion_SelectionChanged"
+                                    SelectionMode="Single">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Label
+                                                Padding="10,8"
+                                                FontSize="13"
+                                                Text="{Binding .}"
+                                                TextColor="{AppThemeBinding Dark=White,
+                                                                            Light=Black}" />
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </Border>
+                        </Grid>
+
+                        <!--  Buttons row  -->
+                        <Grid
+                            Grid.Row="4"
+                            Margin="0,8,0,0"
+                            ColumnDefinitions="Auto,Auto,Auto,*">
                             <Button
-                                Grid.Column="2"
-                                Margin="8,0,0,0"
+                                Grid.Column="0"
                                 Padding="12,0"
                                 BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
                                                                   Light=#e8e8e8}"
@@ -295,7 +301,7 @@
                                                             Light=Black}" />
                             <Button
                                 x:Name="SendToKindleButton"
-                                Grid.Column="3"
+                                Grid.Column="1"
                                 Margin="8,0,0,0"
                                 Padding="12,0"
                                 BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
@@ -307,7 +313,7 @@
                                                             Light=Black}" />
                             <Button
                                 x:Name="MarkReadButton"
-                                Grid.Column="4"
+                                Grid.Column="2"
                                 Margin="8,0,0,0"
                                 Padding="12,0"
                                 BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
@@ -318,6 +324,8 @@
                                 TextColor="{AppThemeBinding Dark=White,
                                                             Light=Black}" />
                         </Grid>
+
+
                     </Grid>
                 </Border>
 

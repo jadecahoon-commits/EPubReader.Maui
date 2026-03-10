@@ -259,12 +259,14 @@ public partial class MainPage : ContentPage
 
             var previousSelection = _selectedFandom;
             FandomList.ItemsSource = fandoms;
-            FandomListAndroid.ItemsSource = fandoms;                      
+            FandomListAndroid.ItemsSource = fandoms;
 
 
-            if (!string.IsNullOrEmpty(previousSelection) && fandoms.Contains(previousSelection))
+            if(!string.IsNullOrEmpty(previousSelection) && fandoms.Contains(previousSelection))
+            {
                 FandomList.SelectedItem = previousSelection;
                 FandomListAndroid.SelectedItem = previousSelection;
+            }
         }
         catch (Exception ex)
         {
