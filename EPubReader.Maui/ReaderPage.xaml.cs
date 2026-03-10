@@ -14,6 +14,8 @@ public partial class ReaderPage : ContentPage
     private int _currentChapter = 0;
     private int _currentPage = 0;
     private int _totalPages = 0;
+    private List<int> _chapterCharCounts = new();
+    private int _totalCharCount = 0;
     private bool _loaded = false;
     private bool _isNavigating = false;
     private bool _goToLastPageOnLoad = false;
@@ -48,14 +50,11 @@ public partial class ReaderPage : ContentPage
     {
         base.OnAppearing();
 
-        _sessionStart = DateTime.UtcNow;   // start timing this session
+        _sessionStart = DateTime.UtcNow;   // always restart timing on each appear
 
-        var window = this.Window;
-        if (window != null)
-        {
-            window.Backgrounding += OnAppBackgrounding;
-            window.Resumed += OnAppResumed;
-        }
+        // On Android, Window may be null on first OnAppearing; hook here and
+        // also in OnHandlerChanged as a fallback.
+        HookWindowEvents();
 
         if (_loaded) return;
         _loaded = true;
@@ -66,21 +65,33 @@ public partial class ReaderPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-
-        var window = this.Window;
-        if (window != null)
-        {
-            window.Backgrounding -= OnAppBackgrounding;
-            window.Resumed -= OnAppResumed;
-        }
+        UnhookWindowEvents(); // from previous fix
         UnhookKeyboard();
-        FlushReadingSession();
+        FlushAndClose();      // was: FlushReadingSession()
+    }
+
+    private void HookWindowEvents()
+    {
+        var window = this.Window;
+        if (window == null) return;
+        // Always unhook first to avoid double-subscription
+        window.Backgrounding -= OnAppBackgrounding;
+        window.Resumed -= OnAppResumed;
+        window.Backgrounding += OnAppBackgrounding;
+        window.Resumed += OnAppResumed;
+    }
+
+    private void UnhookWindowEvents()
+    {
+        var window = this.Window;
+        if (window == null) return;
+        window.Backgrounding -= OnAppBackgrounding;
+        window.Resumed -= OnAppResumed;
     }
 
     private void OnAppBackgrounding(object? sender, BackgroundingEventArgs e)
     {
-        FlushReadingSession();
-        SavePosition();
+        FlushAndClose();      // was: FlushReadingSession() + SavePosition()
     }
 
     private void OnAppResumed(object? sender, EventArgs e)
@@ -232,6 +243,12 @@ public partial class ReaderPage : ContentPage
                 }
 
                 BuildToc();
+
+                // Pre-compute character counts for progress tracking
+                _chapterCharCounts = _chapters
+                    .Select(c => c.Content?.Length ?? 0)
+                    .ToList();
+                _totalCharCount = _chapterCharCounts.Sum();
 
                 var savedPos = LibraryData.GetPosition(_calibreKey);
                 _currentChapter = Math.Clamp(savedPos?.Chapter ?? 0, 0, _chapters.Count - 1);
@@ -484,7 +501,7 @@ public partial class ReaderPage : ContentPage
 
         await ContentWebView.EvaluateJavaScriptAsync($"window.__goToPage({page})");
         UpdateNavUi();
-        SavePosition();
+        // Position is saved at book-close only (FlushAndClose), not on every page turn.
     }
 
     // ── Page navigation ───────────────────────────────────────────────────────
@@ -588,22 +605,47 @@ public partial class ReaderPage : ContentPage
         NextChapterButton.IsEnabled = navIndex < navEntries.Count - 1;
 
         StatusText.Text = _book?.Title ?? "";
+
+        if (_totalCharCount > 0 && _totalPages > 0)
+        {
+            // Characters read in fully-completed chapters
+            int charsCompleted = _chapterCharCounts
+                .Take(_currentChapter)
+                .Sum();
+
+            // Fraction of current chapter read (by page position)
+            int currentChapterChars = _currentChapter < _chapterCharCounts.Count
+                ? _chapterCharCounts[_currentChapter]
+                : 0;
+            double chapterFraction = _totalPages > 1
+                ? (double)_currentPage / (_totalPages - 1)
+                : 1.0;
+            charsCompleted += (int)(currentChapterChars * chapterFraction);
+
+            int percent = (int)Math.Round(100.0 * charsCompleted / _totalCharCount);
+            percent = Math.Clamp(percent, 0, 100);
+            ProgressText.Text = $"{percent}%";
+        }
+        else
+        {
+            ProgressText.Text = "";
+        }
     }
     // @\ GO_CTRL-ALT-DELETE YOUR_FACE.PNG
-    private void SavePosition()
-    {
-        if (!string.IsNullOrEmpty(_filePath))
-            LibraryData.SetPosition(_calibreKey, _currentChapter, _currentPage);
-    }
 
     /// <summary>
-    /// Commits elapsed time for this session to LibraryData.
-    /// Called automatically when the page disappears.
+    /// Commits the current read position and any elapsed session time to disk.
+    /// Called once at book-close (OnDisappearing / OnAppBackgrounding).
     /// </summary>
-    private void FlushReadingSession()
+    private void FlushAndClose()
     {
         try
         {
+            // 1. Update position in-memory (no disk write inside SetPosition)
+            if (!string.IsNullOrEmpty(_filePath))
+                LibraryData.SetPosition(_calibreKey, _currentChapter, _currentPage);
+
+            // 2. Accumulate time in-memory (no disk write inside RecordReadingSession)
             if (_sessionStart.HasValue)
             {
                 var elapsed = (long)(DateTime.UtcNow - _sessionStart.Value).TotalSeconds;
@@ -611,8 +653,11 @@ public partial class ReaderPage : ContentPage
                     LibraryData.RecordReadingSession(_calibreKey, elapsed);
                 _sessionStart = null;
             }
+
+            // 3. Single disk write covering everything
+            LibraryData.Save();
         }
-        catch (Exception ex) { Debug.WriteLine($"FlushReadingSession error: {ex.Message}"); }
+        catch (Exception ex) { Debug.WriteLine($"FlushAndClose error: {ex.Message}"); }
     }
 
     // ── HTML builder ──────────────────────────────────────────────────────────

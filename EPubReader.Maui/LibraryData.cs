@@ -309,7 +309,8 @@ public static class LibraryData
                 _stats.SecondsPerDate[dateKey] = 0;
             _stats.SecondsPerDate[dateKey] += seconds;
 
-            SaveData();
+            // SaveData() intentionally removed — caller (FlushAndClose) handles
+            // the single disk write that also commits position at book-close.
         }
         catch (Exception ex) { Debug.WriteLine($"Error recording reading session: {ex}"); }
     }
@@ -804,7 +805,7 @@ public static class LibraryData
         try
         {
             _positions[calibreKey] = new ReadingPosition { Chapter = chapter, Page = page };
-            SaveData();
+            // No SaveData() here — caller is responsible for flushing at close time.
         }
         catch (Exception ex) { Debug.WriteLine($"Error setting position: {ex}"); }
     }
