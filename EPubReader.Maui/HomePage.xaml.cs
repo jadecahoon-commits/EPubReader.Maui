@@ -6,6 +6,8 @@ public partial class HomePage : ContentPage
 {
     private List<string> _fandoms = new();
     private readonly ILibraryScanner _scanner;
+    private bool _hasAutoDownloaded = false; 
+
 
     public HomePage()
     {
@@ -38,7 +40,11 @@ public partial class HomePage : ContentPage
         await GoogleAuthService.Instance.InitAsync();
 
         // Auto-download library-data.json from Google Drive on app open
-        await TryAutoDownloadLibraryDataAsync();
+        if (!_hasAutoDownloaded)
+        {
+            _hasAutoDownloaded = true;
+            await TryAutoDownloadLibraryDataAsync();
+        }
 #endif
 
         LibraryData.Load();
