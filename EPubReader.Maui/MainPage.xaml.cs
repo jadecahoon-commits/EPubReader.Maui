@@ -8,6 +8,8 @@ public partial class MainPage : ContentPage
     private string _selectedFandom = "";
     private BookItem? _selectedBook = null;
     private Border? _lastSelectedCard = null;
+    private List<CategorySection> _currentSections = new();
+
 
     private const string Unsorted = "Unsorted";
     private const string Uncategorized = "Uncategorized";
@@ -68,6 +70,10 @@ public partial class MainPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+#if WINDOWS
+    HookKeyboard();
+#endif
+
 
 #if ANDROID
         ApplyAndroidLayout();
@@ -91,7 +97,111 @@ public partial class MainPage : ContentPage
         AutoSelectFandom();
     }
 
-    
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+#if WINDOWS
+    UnhookKeyboard();
+#endif
+    }
+
+#if WINDOWS
+private Microsoft.UI.Xaml.Window? _winWindow;
+
+private void HookKeyboard()
+{
+    try
+    {
+        if (Application.Current?.Windows is { Count: > 0 } wins)
+        {
+            var nativeWin = wins[0].Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+            if (nativeWin != null)
+            {
+                _winWindow = nativeWin;
+                nativeWin.Content.KeyDown += OnWindowKeyDown;
+            }
+        }
+    }
+    catch (Exception ex) { Debug.WriteLine($"MainPage.HookKeyboard: {ex.Message}"); }
+}
+
+private void UnhookKeyboard()
+{
+    try
+    {
+        if (_winWindow != null)
+            _winWindow.Content.KeyDown -= OnWindowKeyDown;
+    }
+    catch { }
+}
+
+private void OnWindowKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+{
+    if (e.Key == Windows.System.VirtualKey.Left)
+    {
+        e.Handled = true;
+        NavigateBookByKeyboard(-1);
+    }
+    else if (e.Key == Windows.System.VirtualKey.Right)
+    {
+        e.Handled = true;
+        NavigateBookByKeyboard(+1);
+    }
+}
+
+private void NavigateBookByKeyboard(int delta)
+{
+    try
+    {
+        var allBooks = _currentSections.SelectMany(s => s.Books).ToList();
+        if (allBooks.Count == 0) return;
+
+        int currentIndex = _selectedBook != null
+            ? allBooks.IndexOf(_selectedBook)
+            : -1;
+
+        int nextIndex = currentIndex < 0
+            ? (delta > 0 ? 0 : allBooks.Count - 1)
+            : Math.Clamp(currentIndex + delta, 0, allBooks.Count - 1);
+
+        if (nextIndex == currentIndex) return;
+
+        var nextBook = allBooks[nextIndex];
+        var cv = FindCollectionViewForBook(CategorySections, nextBook);
+        if (cv != null)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                // Only call SelectBook directly — setting cv.SelectedItem would
+                // trigger SelectionChanged and run the selection logic a second time,
+                // leaving a stale red border on the previously-selected card.
+                SelectBook(nextBook, cv);
+            });
+        }
+    }
+    catch (Exception ex) { Debug.WriteLine($"NavigateBookByKeyboard: {ex.Message}"); }
+}
+
+private static CollectionView? FindCollectionViewForBook(VisualElement parent, BookItem target)
+{
+    if (parent is CollectionView cv &&
+        cv.ItemsSource is System.Collections.IEnumerable items &&
+        items.Cast<object>().Contains(target))
+        return cv;
+
+    if (parent is IVisualTreeElement tree)
+    {
+        foreach (var child in tree.GetVisualChildren().OfType<VisualElement>())
+        {
+            var result = FindCollectionViewForBook(child, target);
+            if (result != null) return result;
+        }
+    }
+    return null;
+}
+#endif
+
+
 
     private void LoadBooks()
     {
@@ -301,6 +411,9 @@ public partial class MainPage : ContentPage
                          .ToList()
             })
             .ToList();
+
+        _currentSections = sections;
+
 
         BindableLayout.SetItemsSource(CategorySections, null);
         BindableLayout.SetItemTemplate(CategorySections, CreateCategorySectionTemplate());
@@ -562,9 +675,6 @@ public partial class MainPage : ContentPage
             if (_lastSelectedCard != null)
             {
                 _lastSelectedCard.ScaleTo(1.0, 200, Easing.CubicOut);
-                _lastSelectedCard.StrokeThickness = 1;
-                _lastSelectedCard.SetAppThemeColor(Border.StrokeProperty,
-                    Color.FromArgb("#e0e0e0"), Color.FromArgb("#3a3a3a"));
                 _lastSelectedCard = null;
             }
 
@@ -574,8 +684,6 @@ public partial class MainPage : ContentPage
             if (card != null)
             {
                 card.ScaleTo(1.2, 250, Easing.CubicOut);
-                card.Stroke = Color.FromArgb("#E50914");
-                card.StrokeThickness = 2;
                 _lastSelectedCard = card;
             }
 
