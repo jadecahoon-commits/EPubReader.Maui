@@ -139,9 +139,30 @@ public static class LibraryData
             Title = book.Title,
             Author = book.Author,
             CoverImagePath = book.CoverImagePath,
-            FilePath = book.FilePath              // ← ADD THIS
+            FilePath = book.FilePath
         };
         SaveData();
+
+#if ANDROID
+        try
+        {
+            var ctx = Android.App.Application.Context;
+
+            var prefs = ctx.GetSharedPreferences("epubreader_widget", Android.Content.FileCreationMode.Private)!;
+            var editor = prefs.Edit()!;
+            editor.PutString("last_title", book.Title ?? "");
+            editor.PutString("last_author", book.Author ?? "");
+            editor.Apply();
+
+            var intent = new Android.Content.Intent("com.companyname.epubreader.maui.BOOK_CHANGED");
+            intent.SetPackage(ctx.PackageName);
+            ctx.SendBroadcast(intent);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Widget update failed: {ex.Message}");
+        }
+#endif
     }
 
 

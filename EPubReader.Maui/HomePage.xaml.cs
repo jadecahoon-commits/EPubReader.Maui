@@ -187,16 +187,19 @@ public partial class HomePage : ContentPage
             StatsTimeLabel.Text = timeMain;
             StatsTimeSubLabel.Text = timeSub;
 
-            var topFandom = LibraryData.GetStats().ReadHistory
-                .GroupBy(kvp => LibraryData.GetFandom(kvp.Key))
-                .Where(g => !string.IsNullOrEmpty(g.Key))
-                .OrderByDescending(g => g.Sum(kvp => kvp.Value.Count))
-                .FirstOrDefault();
+            var timePerFandom = LibraryData.GetTimePerFandom()
+    .Where(kvp => !string.IsNullOrEmpty(kvp.Key) && kvp.Key != "(No Fandom)")
+    .OrderByDescending(kvp => kvp.Value)
+    .FirstOrDefault();
 
-            if (topFandom != null)
+            if (timePerFandom.Key != null)
             {
-                StatsTopFandomLabel.Text = topFandom.Key;
-                StatsTopFandomSubLabel.Text = $"{topFandom.Sum(kvp => kvp.Value.Count)} sessions";
+                var topSeconds = timePerFandom.Value;
+                string timeSuffix = topSeconds >= 3600
+                    ? $"{topSeconds / 3600}h spent"
+                    : $"{topSeconds / 60}m spent";
+                StatsTopFandomLabel.Text = timePerFandom.Key;
+                StatsTopFandomSubLabel.Text = timeSuffix;
             }
             else
             {

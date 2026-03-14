@@ -12,6 +12,21 @@
 				android:resource="@xml/file_paths" />
 		</provider>
 
+		<receiver
+    android:name="com.companyname.epubreader.maui.BookWidgetProvider"
+    android:exported="true"
+    android:label="Continue Reading">
+
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+				<action android:name="com.companyname.epubreader.maui.BOOK_CHANGED" />
+			</intent-filter>
+
+			<meta-data
+				android:name="android.appwidget.provider"
+				android:resource="@xml/book_widget_info" />
+		</receiver>
+
 	</application>
 
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

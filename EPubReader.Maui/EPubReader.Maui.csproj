@@ -57,6 +57,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="Platforms\Android\Resources\values\strings.xml" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <AndroidResource Include="Platforms\Android\Resources\xml\file_paths.xml" />
 	</ItemGroup>
 
