@@ -154,9 +154,20 @@ public static class LibraryData
             editor.PutString("last_author", book.Author ?? "");
             editor.Apply();
 
-            var intent = new Android.Content.Intent("com.companyname.epubreader.maui.BOOK_CHANGED");
-            intent.SetPackage(ctx.PackageName);
-            ctx.SendBroadcast(intent);
+            // ✅ Fire broadcast off the main thread so it can't crash navigation
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    var intent = new Android.Content.Intent("com.companyname.epubreader.maui.BOOK_CHANGED");
+                    intent.SetPackage(ctx.PackageName);
+                    ctx.SendBroadcast(intent);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Widget broadcast failed: {ex.Message}");
+                }
+            });
         }
         catch (Exception ex)
         {

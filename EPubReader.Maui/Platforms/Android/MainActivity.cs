@@ -1,4 +1,5 @@
 ﻿using Android.App;
+using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 
@@ -10,6 +11,12 @@ namespace EPubReader.Maui
     public class MainActivity : MauiAppCompatActivity
     {
         public static Action<int, string>? OnFolderPicked;
+
+        protected override void OnNewIntent(Intent? intent)
+        {
+            base.OnNewIntent(intent);
+            Intent = intent; // update the activity's current intent
+        }
 
         protected override void OnActivityResult(int requestCode, Result resultCode, Android.Content.Intent? data)
         {

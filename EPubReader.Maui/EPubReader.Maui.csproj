@@ -64,6 +64,10 @@
 	  <AndroidResource Include="Platforms\Android\Resources\xml\file_paths.xml" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
+		<LinkDescription Include="Platforms\Android\linker.xml" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Maui" Version="9.1.1" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />

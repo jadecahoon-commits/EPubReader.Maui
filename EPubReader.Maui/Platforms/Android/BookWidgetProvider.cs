@@ -42,10 +42,11 @@ namespace EPubReader.Maui
 
         private static void UpdateWidget(Context context, AppWidgetManager manager, int widgetId)
         {
-            var views = new RemoteViews(context.PackageName!, Resource.Layout.book_widget);
-
-            // Read from SharedPreferences — written by the MAUI app via LibraryData
-            var prefs = context.GetSharedPreferences(PrefFile, FileCreationMode.Private)!;
+            try  // ✅ guard the entire method
+            {
+                var views = new RemoteViews(context.PackageName!, Resource.Layout.book_widget);
+                // Read from SharedPreferences — written by the MAUI app via LibraryData
+                var prefs = context.GetSharedPreferences(PrefFile, FileCreationMode.Private)!;
             var title = prefs.GetString(PrefTitle, null);
             var author = prefs.GetString(PrefAuthor, null);
 
@@ -69,6 +70,11 @@ namespace EPubReader.Maui
             views.SetOnClickPendingIntent(Resource.Id.widget_root, pending);
 
             manager.UpdateAppWidget(widgetId, views);
+            }
+            catch (Exception ex)
+            {
+                Android.Util.Log.Error("BookWidget", $"UpdateWidget failed: {ex.Message}");
+            }
         }
     }
 }

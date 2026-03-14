@@ -12,5 +12,11 @@ namespace EPubReader.Maui
         }
 
         protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+
+        [Preserve]
+        private static readonly System.Type[] _preservedTypes =
+        {
+            typeof(BookWidgetProvider)
+        };
     }
 }
