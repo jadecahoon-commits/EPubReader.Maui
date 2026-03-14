@@ -144,35 +144,32 @@ public static class LibraryData
         SaveData();
 
 #if ANDROID
-        try
+        System.Threading.Tasks.Task.Run(() =>
         {
-            var ctx = Android.App.Application.Context;
-
-            var prefs = ctx.GetSharedPreferences("epubreader_widget", Android.Content.FileCreationMode.Private)!;
-            var editor = prefs.Edit()!;
-            editor.PutString("last_title", book.Title ?? "");
-            editor.PutString("last_author", book.Author ?? "");
-            editor.Apply();
-
-            // ✅ Fire broadcast off the main thread so it can't crash navigation
-            System.Threading.Tasks.Task.Run(() =>
+            try
             {
-                try
-                {
-                    var intent = new Android.Content.Intent("com.companyname.epubreader.maui.BOOK_CHANGED");
-                    intent.SetPackage(ctx.PackageName);
-                    ctx.SendBroadcast(intent);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Widget broadcast failed: {ex.Message}");
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Widget update failed: {ex.Message}");
-        }
+                var ctx = Android.App.Application.Context;
+                var prefs = ctx.GetSharedPreferences("epubreader_widget", Android.Content.FileCreationMode.Private);
+                var editor = prefs?.Edit();
+                if (editor == null) return;
+                editor.PutString("last_title", book.Title ?? "");
+                editor.PutString("last_author", book.Author ?? "");
+                editor.Commit();
+
+                // Update widget directly — no broadcast needed
+                var manager = Android.Appwidget.AppWidgetManager.GetInstance(ctx);
+                var component = new Android.Content.ComponentName(ctx, Java.Lang.Class.FromType(typeof(BookWidgetProvider)));
+                var ids = manager?.GetAppWidgetIds(component);
+                if (ids == null || ids.Length == 0) return;
+
+                foreach (var id in ids)
+                    BookWidgetProvider.UpdateWidget(ctx, manager!, id);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Widget update failed: {ex.Message}");
+            }
+        });
 #endif
     }
 

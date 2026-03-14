@@ -9,8 +9,7 @@ namespace EPubReader.Maui
     [BroadcastReceiver(Label = "Continue Reading", Exported = true)]
     [IntentFilter(new[] { "android.appwidget.action.APPWIDGET_UPDATE" })]
     [MetaData("android.appwidget.provider", Resource = "@xml/book_widget_info")]
-    [Preserve(AllMembers = true)]  // ← prevents the linker stripping this class
-
+    [Preserve(AllMembers = true)]
     public class BookWidgetProvider : AppWidgetProvider
     {
         public const string ActionBookChanged = "com.companyname.epubreader.maui.BOOK_CHANGED";
@@ -40,7 +39,7 @@ namespace EPubReader.Maui
             }
         }
 
-        private static void UpdateWidget(Context context, AppWidgetManager manager, int widgetId)
+        internal static void UpdateWidget(Context context, AppWidgetManager manager, int widgetId)
         {
             try  // ✅ guard the entire method
             {

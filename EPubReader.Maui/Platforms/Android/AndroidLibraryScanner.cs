@@ -209,12 +209,7 @@ public class AndroidLibraryScanner : ILibraryScanner
             var stream = Resolver.OpenInputStream(uri);
             if (stream == null) return null;
 
-            // Copy to MemoryStream since the Android input stream may not support seeking
-            var memStream = new MemoryStream();
-            stream.CopyTo(memStream);
-            stream.Close();
-            memStream.Position = 0;
-            return memStream;
+            return stream; // don't copy to MemoryStream
         }
         catch (Exception ex)
         {
