@@ -308,6 +308,8 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
             _selectedBook = savedBook;
             DescriptionPanel.IsVisible = true;
+            ResetCategoryRow();
+
         }
         catch (Exception ex)
         {
@@ -470,7 +472,7 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
             {
                 SelectionMode = SelectionMode.None,
                 ItemsLayout = new LinearItemsLayout(ItemsLayoutOrientation.Horizontal) { ItemSpacing = 16 },
-                HeightRequest = 330,
+                HeightRequest = 280,
                 ItemTemplate = CreateBookCardTemplate()
             };
             bookCollection.SetBinding(ItemsView.ItemsSourceProperty, "Books");
@@ -488,8 +490,8 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
         {
             var card = new Border
             {
-                WidthRequest = 180,
-                HeightRequest = 270,
+                WidthRequest = 145,
+                HeightRequest = 215,
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
                 StrokeThickness = 1,
                 // Ensure the card scales from center
@@ -696,6 +698,10 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
 
             DescriptionPanel.IsVisible = true;
+
+            //Hide the category select
+            ResetCategoryRow();
+
             // Scroll so the selected category row is centred in the viewport
             ScrollToCategoryAsync(book.Category);
         }
@@ -921,6 +927,20 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
     // ── Category ──────────────────────────────────────────────────────────────
 
+    private void CategoryToggle_Click(object? sender, EventArgs e)
+    {
+        ActionButtonsRow.IsVisible = false;
+        CategoryEditRow.IsVisible = true;
+        CategoryInput.Focus();
+    }
+
+    private void ResetCategoryRow()
+    {
+        CategorySuggestionsBorder.IsVisible = false;
+        CategoryEditRow.IsVisible = false;
+        ActionButtonsRow.IsVisible = true;
+    }
+
     private void SaveCategory_Click(object? sender, EventArgs e)
     {
         try
@@ -946,6 +966,9 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
             Debug.WriteLine($"Error saving category: {ex}");
             ShowError("Failed to save category", ex.Message);
         }
+
+        // Collapse the category row after saving
+        ResetCategoryRow();
     }
 
     // Settings
