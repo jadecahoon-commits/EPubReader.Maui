@@ -756,10 +756,10 @@ html, body {{
   width: max-content;
   background-color: {bg};
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
 }}
 
 #content {{
-  width: 100vw;
   padding: 32px 20px 40px;
   font-family: '{LibraryData.ReaderFont}', Georgia, serif;
   font-size: {LibraryData.ReaderFontSize}px;
@@ -827,9 +827,11 @@ span {{ color: inherit; background: transparent; }}
   var curPage    = 0;
 
   function computeLayout() {{
-    pageWidth  = window.innerWidth;
-    totalPages = Math.max(1, Math.round(pager.scrollWidth / pageWidth));
-  }}
+  // Reset transform so scrollWidth reflects true content width
+  pager.style.transform = 'translateX(0px)';
+  pageWidth  = window.innerWidth;
+  totalPages = Math.max(1, Math.round(pager.scrollWidth / pageWidth));
+}}
 
   window.__getTotalPages = function() {{
     computeLayout();

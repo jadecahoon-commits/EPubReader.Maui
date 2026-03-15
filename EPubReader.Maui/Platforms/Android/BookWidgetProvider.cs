@@ -17,7 +17,9 @@ namespace EPubReader.Maui
         // SharedPreferences keys — written by LibraryData, read by widget
         public const string PrefFile = "epubreader_widget";
         public const string PrefTitle = "last_title";
-        public const string PrefAuthor = "last_author";
+        public const string PrefAuthor = "last_author"; 
+        public const string PrefFilePath = "last_file_path";
+
 
         public override void OnUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds)
         {
@@ -46,10 +48,12 @@ namespace EPubReader.Maui
                 var views = new RemoteViews(context.PackageName!, Resource.Layout.book_widget);
                 // Read from SharedPreferences — written by the MAUI app via LibraryData
                 var prefs = context.GetSharedPreferences(PrefFile, FileCreationMode.Private)!;
-            var title = prefs.GetString(PrefTitle, null);
-            var author = prefs.GetString(PrefAuthor, null);
+                var title = prefs.GetString(PrefTitle, null);
+                var author = prefs.GetString(PrefAuthor, null);
+                var filePath = prefs.GetString(PrefFilePath, null);
 
-            if (string.IsNullOrEmpty(title))
+
+                if (string.IsNullOrEmpty(title))
             {
                 views.SetTextViewText(Resource.Id.widget_title, "No book yet");
                 views.SetTextViewText(Resource.Id.widget_author, "Open the app to start reading");
@@ -60,15 +64,17 @@ namespace EPubReader.Maui
                 views.SetTextViewText(Resource.Id.widget_author, author ?? "");
             }
 
-            // Tap → open the app
-            var launch = new Intent(context, typeof(MainActivity));
-            launch.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop);
-            var pending = PendingIntent.GetActivity(
-                context, 0, launch,
-                PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
-            views.SetOnClickPendingIntent(Resource.Id.widget_root, pending);
+                // Tap → open the app
+                var launch = new Intent(context, typeof(MainActivity));
+                launch.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop);
+                if (!string.IsNullOrEmpty(filePath))
+                    launch.PutExtra("open_book_file_path", filePath);
+                var pending = PendingIntent.GetActivity(
+                    context, 0, launch,
+                    PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+                views.SetOnClickPendingIntent(Resource.Id.widget_root, pending);
 
-            manager.UpdateAppWidget(widgetId, views);
+                manager.UpdateAppWidget(widgetId, views);
             }
             catch (Exception ex)
             {

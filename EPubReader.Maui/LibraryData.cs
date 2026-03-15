@@ -154,6 +154,8 @@ public static class LibraryData
                 if (editor == null) return;
                 editor.PutString("last_title", book.Title ?? "");
                 editor.PutString("last_author", book.Author ?? "");
+                editor.PutString("last_file_path", book.FilePath ?? "");
+
                 editor.Commit();
 
                 // Update widget directly — no broadcast needed

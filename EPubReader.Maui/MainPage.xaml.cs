@@ -14,7 +14,6 @@ public partial class MainPage : ContentPage
     private const string Unsorted = "Unsorted";
     private const string Uncategorized = "Uncategorized";
     private readonly ILibraryScanner _scanner;
-    private readonly Dictionary<string, VerticalStackLayout> _sectionViews = new(StringComparer.OrdinalIgnoreCase);
 
 
     public MainPage()
@@ -391,7 +390,6 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
     {
         _selectedBook = null;
         _lastSelectedCard = null;
-        _sectionViews.Clear();
         DescriptionPanel.IsVisible = false;
 
         var fandomBooks = _books.Where(b =>
@@ -416,10 +414,8 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
         _currentSections = sections;
 
-
-        BindableLayout.SetItemsSource(CategorySections, null);
-        BindableLayout.SetItemTemplate(CategorySections, CreateCategorySectionTemplate());
-        BindableLayout.SetItemsSource(CategorySections, sections);
+        CategorySections.ItemTemplate = CreateCategorySectionTemplate();
+        CategorySections.ItemsSource = sections;
 
         var total = fandomBooks.Count;
         BookCountText.Text = $"{total} title{(total != 1 ? "s" : "")}  ·  {sections.Count} categor{(sections.Count != 1 ? "ies" : "y")}";
@@ -431,12 +427,6 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
         {
             var section = new VerticalStackLayout { Margin = new Thickness(0, 0, 0, 32) };
 
-            // Register as soon as BindingContext is set (happens after template returns)
-            section.BindingContextChanged += (s, _) =>
-            {
-                if (section.BindingContext is CategorySection cs)
-                    _sectionViews[cs.Name] = section;
-            };
 
             // Category header row
             var headerStack = new HorizontalStackLayout { Spacing = 12, Margin = new Thickness(0, 0, 0, 12) };
@@ -488,7 +478,6 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
             bookScroll.Content = bookCollection;
             section.Children.Add(bookScroll);
-
             return section;
         });
     }
@@ -514,13 +503,14 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
             var grid = new Grid { InputTransparent = false };
 
             // Cover image
+            // Cover image — binds to the async-loaded CoverSource, no converter needed
             var coverImage = new Image
             {
                 Aspect = Aspect.AspectFill,
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center
             };
-            coverImage.SetBinding(Image.SourceProperty, new Binding("CoverImagePath", converter: new BitmapConverter()));
+            coverImage.SetBinding(Image.SourceProperty, new Binding("CoverSource"));
             coverImage.SetBinding(IsVisibleProperty, "HasCover");
             grid.Children.Add(coverImage);
 
@@ -707,7 +697,7 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
             DescriptionPanel.IsVisible = true;
             // Scroll so the selected category row is centred in the viewport
-            _ = ScrollToCategoryAsync(book.Category);
+            ScrollToCategoryAsync(book.Category);
         }
         catch (Exception ex)
         {
@@ -715,23 +705,15 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
         }
     }
 
-    private async Task ScrollToCategoryAsync(string categoryName)
+    private void ScrollToCategoryAsync(string categoryName)
     {
         try
         {
-            await Task.Delay(50); // let layout settle after panel becomes visible
-            if (!_sectionViews.TryGetValue(categoryName, out var sectionView)) return;
+            var section = _currentSections.FirstOrDefault(s =>
+                string.Equals(s.Name, categoryName, StringComparison.OrdinalIgnoreCase));
+            if (section == null) return;
 
-            // Get the Y position of the section relative to the scroll content
-            var sectionY = sectionView.Y;
-            var sectionHeight = sectionView.Height;
-            var viewportHeight = CategoryScrollView.Height;
-
-            // Target: centre of the section in the middle of the viewport
-            var targetY = sectionY - (viewportHeight / 2) + (sectionHeight / 2);
-            targetY = Math.Max(0, targetY);
-
-            await CategoryScrollView.ScrollToAsync(0, targetY, animated: true);
+            CategorySections.ScrollTo(section, position: ScrollToPosition.Start, animate: true);
         }
         catch (Exception ex)
         {
@@ -863,7 +845,7 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
 
             DescriptionPanel.IsVisible = true;
-            _ = ScrollToCategoryAsync(book.Category);
+            ScrollToCategoryAsync(book.Category);
 
         }
         catch (Exception ex)

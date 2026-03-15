@@ -159,12 +159,12 @@
                     Text=""
                     TextColor="{AppThemeBinding Dark=#bbbbbb,
                                                 Light=#555555}" />
-                <!--  Category sections  -->
-                <ScrollView x:Name="CategoryScrollView" Grid.Row="2">
-                    <VerticalStackLayout x:Name="CategorySections">
-                        <!--  Populated via BindableLayout in code-behind  -->
-                    </VerticalStackLayout>
-                </ScrollView>
+
+                <!--  Category sections — virtualised  -->
+                <CollectionView
+                    x:Name="CategorySections"
+                    Grid.Row="2"
+                    ItemsLayout="VerticalList" />
 
 
 

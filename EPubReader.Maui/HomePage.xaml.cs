@@ -28,6 +28,39 @@ public partial class HomePage : ContentPage
         base.OnAppearing();
 
 #if ANDROID
+        try
+        {
+            var activity = (Android.App.Activity)Microsoft.Maui.ApplicationModel.Platform.CurrentActivity!;
+            var filePath = activity.Intent?.GetStringExtra("open_book_file_path");
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                // Clear the extra so it doesn't fire again on back-navigation
+                activity.Intent?.RemoveExtra("open_book_file_path");
+
+                var last = LibraryData.LastReadBook;
+                if (last != null)
+                {
+                    var book = new BookItem
+                    {
+                        CalibreKey = last.CalibreKey,
+                        Title = last.Title,
+                        Author = last.Author,
+                        CoverImagePath = last.CoverImagePath,
+                        FilePath = filePath,
+                        FileType = System.IO.Path.GetExtension(last.CalibreKey).TrimStart('.')
+                    };
+                    await Navigation.PushAsync(new ReaderPage(book, _scanner));
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Widget open-book failed: {ex}");
+        }
+#endif
+
+#if ANDROID
         ApplyAndroidLayout();
 
         var status = await Permissions.RequestAsync<Permissions.StorageRead>();

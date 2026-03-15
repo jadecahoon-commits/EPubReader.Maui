@@ -4,7 +4,7 @@ namespace EPubReader.Maui;
 
 public class BitmapConverter : IValueConverter
 {
-    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+   /* public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is not string path || string.IsNullOrEmpty(path))
             return null;
@@ -17,6 +17,16 @@ public class BitmapConverter : IValueConverter
         if (path.StartsWith("gdrive://"))
             return ImageSource.FromStream(() => OpenDriveStreamAsync(path).GetAwaiter().GetResult());
 
+        return ImageSource.FromFile(path);
+    }*/
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not string path || string.IsNullOrEmpty(path))
+            return null;
+
+        // gdrive:// and content:// covers are handled by BookItem.CoverSource directly.
+        // This converter now only handles plain local file paths.
         return ImageSource.FromFile(path);
     }
 
