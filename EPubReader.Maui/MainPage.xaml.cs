@@ -468,7 +468,7 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
             var bookCollection = new CollectionView
             {
-                SelectionMode = SelectionMode.Single,
+                SelectionMode = SelectionMode.None,
                 ItemsLayout = new LinearItemsLayout(ItemsLayoutOrientation.Horizontal) { ItemSpacing = 16 },
                 HeightRequest = 330,
                 ItemTemplate = CreateBookCardTemplate()
@@ -497,12 +497,14 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
                 AnchorY = 0.5,
                 // Add margin so the scaled card doesn't clip against neighbours
                 Margin = new Thickness(4, 20, 4, 20)
-            };
-            card.SetAppThemeColor(Border.StrokeProperty, Color.FromArgb("#e0e0e0"), Color.FromArgb("#3a3a3a"));
+            }; 
+            card.SetAppThemeColor(Border.BackgroundColorProperty,
+                Color.FromArgb("#ffffff"), Color.FromArgb("#1a1a1a"));
 
-            var grid = new Grid { InputTransparent = false };
 
-            // Cover image
+
+            var grid = new Grid { InputTransparent = false, BackgroundColor = Colors.Transparent };
+
             // Cover image — binds to the async-loaded CoverSource, no converter needed
             var coverImage = new Image
             {
@@ -656,8 +658,6 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
                 }
             };
             card.GestureRecognizers.Add(cardTap);
-
-            card.Content = grid;
 
             card.Content = grid;
 
@@ -846,6 +846,8 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
             DescriptionPanel.IsVisible = true;
             ScrollToCategoryAsync(book.Category);
+
+
 
         }
         catch (Exception ex)
