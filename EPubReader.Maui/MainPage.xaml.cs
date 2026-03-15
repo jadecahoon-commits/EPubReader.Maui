@@ -9,6 +9,7 @@ public partial class MainPage : ContentPage
     private BookItem? _selectedBook = null;
     private Border? _lastSelectedCard = null;
     private List<CategorySection> _currentSections = new();
+    private readonly Dictionary<BookItem, Border> _cardViews = new();
 
 
     private const string Unsorted = "Unsorted";
@@ -95,6 +96,8 @@ public partial class MainPage : ContentPage
 
         // Auto-select the first fandom so books are visible without a manual tap
         AutoSelectFandom();
+
+        _ = BackgroundDriveSyncAsync();
     }
 
     protected override void OnDisappearing()
@@ -240,6 +243,78 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
                 await DisplayAlert("Error loading library",
                     $"Exception: {ex.GetType().Name}: {ex.Message}", "OK");
             });
+        }
+    }
+
+    /// <summary>
+    /// Runs silently in the background after the page appears.
+    /// Re-scans the Drive folder and, if the book list has changed, updates the
+    /// local manifest and refreshes the UI.  Never shows errors to the user —
+    /// if something fails the stale cache is simply kept.
+    /// </summary>
+    private async Task BackgroundDriveSyncAsync()
+    {
+        try
+        {
+            // Only runs when Drive is the active library source
+            if (!DriveLibraryManifest.Exists() ||
+                string.IsNullOrEmpty(GoogleAuthService.Instance.LibraryFolderId) ||
+                !GoogleAuthService.Instance.IsSignedIn)
+                return;
+
+            Debug.WriteLine("BackgroundDriveSync: starting…");
+
+            var freshManifest = await GoogleAuthService.Instance.ScanLibraryFolderAsync();
+            if (freshManifest == null)
+            {
+                Debug.WriteLine("BackgroundDriveSync: scan returned null, keeping cache");
+                return;
+            }
+
+            // Compare with what we loaded at startup
+            var cachedManifest = DriveLibraryManifest.Load();
+            var cachedPrint = cachedManifest?.ComputeFingerprint() ?? "";
+            var freshPrint = freshManifest.ComputeFingerprint();
+
+            if (cachedPrint == freshPrint)
+            {
+                Debug.WriteLine("BackgroundDriveSync: no changes detected");
+                return;
+            }
+
+            Debug.WriteLine(
+                $"BackgroundDriveSync: change detected " +
+                $"(was {cachedPrint}, now {freshPrint}) — updating cache and UI");
+
+            freshManifest.Save();
+
+            // Refresh the UI on the main thread
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    var newBooks = freshManifest.ToBookItems();
+                    _books = newBooks;
+                    LoadFandoms();
+                    // Re-apply the currently selected fandom so the grid updates
+                    if (!string.IsNullOrEmpty(_selectedFandom))
+                        RebuildCategorySections(_selectedFandom);
+                    else
+                        AutoSelectFandom();
+
+                    Debug.WriteLine(
+                        $"BackgroundDriveSync: UI refreshed — {_books.Count} books");
+                }
+                catch (Exception uiEx)
+                {
+                    Debug.WriteLine($"BackgroundDriveSync UI refresh: {uiEx.Message}");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            // Background sync must never crash the app
+            Debug.WriteLine($"BackgroundDriveSync: {ex.Message}");
         }
     }
 
@@ -392,6 +467,7 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
     {
         _selectedBook = null;
         _lastSelectedCard = null;
+        _cardViews.Clear();
         DescriptionPanel.IsVisible = false;
 
         var fandomBooks = _books.Where(b =>
@@ -503,6 +579,11 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
             card.SetAppThemeColor(Border.BackgroundColorProperty,
                 Color.FromArgb("#ffffff"), Color.FromArgb("#1a1a1a"));
 
+            card.BindingContextChanged += (s, _) =>
+            {
+                if (card.BindingContext is BookItem book)
+                    _cardViews[book] = card;
+            };
 
 
             var grid = new Grid { InputTransparent = false, BackgroundColor = Colors.Transparent };
@@ -681,7 +762,7 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
             _selectedBook = book;
 
-            var card = FindCardForItem(cv, book);
+            _cardViews.TryGetValue(book, out var card);
             if (card != null)
             {
                 card.ScaleTo(1.2, 250, Easing.CubicOut);

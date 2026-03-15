@@ -61,6 +61,32 @@ public class DriveLibraryManifest
         catch { /* ignore */ }
     }
 
+    /// <summary>
+    /// A cheap, order-independent fingerprint of the library contents.
+    /// Built from sorted CalibreKeys so it's stable across re-scans if nothing changed.
+    /// Returns the same value for two manifests that contain identical books.
+    /// </summary>
+    public string ComputeFingerprint()
+    {
+        // Collect every CalibreKey the manifest would produce
+        var keys = Authors
+            .SelectMany(a => a.Books.Select(b =>
+                LibraryData.BuildCalibreKey(a.Name, b.FolderName ?? b.Title, "")))
+            .OrderBy(k => k, StringComparer.Ordinal)
+            .ToList();
+
+        // Simple deterministic hash — no crypto dependency needed
+        unchecked
+        {
+            long hash = 17;
+            foreach (var key in keys)
+            {
+                hash = hash * 31 + key.GetHashCode(StringComparison.Ordinal);
+            }
+            return $"{keys.Count}:{hash:x16}";
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>Flatten the manifest into BookItems for use by the main page.</summary>

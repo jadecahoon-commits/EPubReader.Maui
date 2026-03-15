@@ -23,7 +23,7 @@ public partial class ReaderPage : ContentPage
     private string _calibreKey = "";
     private string _filePath = "";
     private BookItem _bookItem = null!;
-    private DateTime? _sessionStart;  
+    private DateTime? _sessionStart;
 
 
     // TOC
@@ -41,7 +41,7 @@ public partial class ReaderPage : ContentPage
         //Title = bookItem.Title;
         _filePath = bookItem.FilePath;
         _calibreKey = bookItem.CalibreKey;
-       _bookItem = bookItem; 
+        _bookItem = bookItem;
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -390,16 +390,16 @@ public partial class ReaderPage : ContentPage
         await Navigation.PushAsync(new ReaderSettingsPage(RefreshReaderSettings));
     }
     public void RefreshReaderSettings()
-     {
-         // Re-render the current chapter with updated font size and text color
-         if (_chapters.Count == 0) return;
-         _savedPage = _currentPage;
-         var chapter = _chapters[_currentChapter];
-         ContentWebView.Source = new HtmlWebViewSource
-         {
-             Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark", GetBookCss())
-         };
-     }
+    {
+        // Re-render the current chapter with updated font size and text color
+        if (_chapters.Count == 0) return;
+        _savedPage = _currentPage;
+        var chapter = _chapters[_currentChapter];
+        ContentWebView.Source = new HtmlWebViewSource
+        {
+            Html = BuildPagedHtml(chapter.Content ?? "", LibraryData.Theme == "Dark", GetBookCss())
+        };
+    }
 
     // ── Chapter display ───────────────────────────────────────────────────────
 
