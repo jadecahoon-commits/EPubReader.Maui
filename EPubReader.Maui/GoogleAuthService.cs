@@ -680,6 +680,7 @@ public class GoogleAuthService
             {
                 entry.CoverDriveFileId = file.Id;
                 entry.CoverExtension = ext;
+                entry.CoverModifiedTime = file.ModifiedTimeDateTimeOffset?.UtcDateTime;
             }
             else if (ext == ".opf" && entry.OpfDriveFileId == null)
             {
@@ -769,7 +770,7 @@ public class GoogleAuthService
         request.Q = $"'{parentId}' in parents " +
                     $"and mimeType != 'application/vnd.google-apps.folder' " +
                     $"and trashed = false";
-        request.Fields = "files(id, name, mimeType)";
+        request.Fields = "files(id, name, mimeType, modifiedTime)";
         request.PageSize = 100;
 
         var result = await request.ExecuteAsync();

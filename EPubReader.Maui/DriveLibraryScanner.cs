@@ -73,17 +73,36 @@ public class DriveLibraryScanner : ILibraryScanner
     public static async Task<string?> ResolveToLocalPathAsync(string path)
     {
         var fileId = DriveLibraryManifest.ParseDriveFileId(path);
-        if (fileId == null) return path; // not a Drive path
+        if (fileId == null) return path;
 
-        var localPath = LocalCachePath(path); // pass full path, not just fileId
+        var localPath = LocalCachePath(path);
+
         if (File.Exists(localPath))
         {
-            Debug.WriteLine($"DriveLibraryScanner: cache hit for {fileId}");
-            return localPath;
+            // Check if Drive has a newer version
+            var driveModified = DriveLibraryManifest.ParseDriveModifiedTime(path);
+            if (driveModified.HasValue)
+            {
+                var localModified = File.GetLastWriteTimeUtc(localPath);
+                if (localModified >= driveModified.Value)
+                {
+                    Debug.WriteLine($"DriveLibraryScanner: cache hit (current) for {fileId}");
+                    return localPath;
+                }
+                Debug.WriteLine($"DriveLibraryScanner: cache stale for {fileId}, re-downloading");
+            }
+            else
+            {
+                // No timestamp in path — legacy cache hit, trust it
+                Debug.WriteLine($"DriveLibraryScanner: cache hit (no timestamp) for {fileId}");
+                return localPath;
+            }
         }
 
         Debug.WriteLine($"DriveLibraryScanner: downloading {fileId}…");
         var ok = await GoogleAuthService.Instance.DownloadFileByIdAsync(fileId, localPath);
+        if (ok)
+            File.SetLastWriteTimeUtc(localPath, DateTime.UtcNow); // mark when we downloaded it
         return ok ? localPath : null;
     }
 

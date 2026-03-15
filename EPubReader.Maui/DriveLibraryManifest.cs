@@ -88,7 +88,7 @@ public class DriveLibraryManifest
                         FilePath = DriveFilePath(file.DriveFileId, file.Extension),
                         FileType = file.Extension.TrimStart('.'),
                         CoverImagePath = book.CoverDriveFileId is { } coverId
-                            ? DriveFilePath(coverId, book.CoverExtension ?? ".jpg")
+                            ? DriveFilePath(coverId, book.CoverExtension ?? ".jpg", book.CoverModifiedTime)
                             : null,
                         Description = book.Description,
                         SeriesIndex = book.SeriesIndex,
@@ -108,16 +108,34 @@ public class DriveLibraryManifest
     /// Canonical path scheme for Drive files used as BookItem.FilePath.
     /// </summary>
     // Format: gdrive://{driveFileId}.{ext}  (e.g. gdrive://1h_WzuT245m4....epub)
-    public static string DriveFilePath(string driveFileId, string extension)
-        => $"gdrive://{driveFileId}{extension}";
+
+    public static string DriveFilePath(string driveFileId, string extension, DateTime? modifiedTime = null)
+    {
+        var base_ = $"gdrive://{driveFileId}{extension}";
+        if (modifiedTime.HasValue)
+            base_ += $"?t={new DateTimeOffset(modifiedTime.Value).ToUnixTimeSeconds()}";
+        return base_;
+    }
 
     public static string? ParseDriveFileId(string path)
     {
         if (!path.StartsWith("gdrive://")) return null;
         var rest = path["gdrive://".Length..];
-        // Strip extension if present so we get the bare Drive file ID
+        // Strip query string
+        var q = rest.IndexOf('?');
+        if (q >= 0) rest = rest[..q];
         var dot = rest.LastIndexOf('.');
         return dot > 0 ? rest[..dot] : rest;
+    }
+
+    /// <summary>Returns the modifiedTime encoded in a gdrive:// path, or null.</summary>
+    public static DateTime? ParseDriveModifiedTime(string path)
+    {
+        var q = path.IndexOf("?t=");
+        if (q < 0) return null;
+        if (long.TryParse(path[(q + 3)..], out var secs))
+            return DateTimeOffset.FromUnixTimeSeconds(secs).UtcDateTime;
+        return null;
     }
 }
 
@@ -150,6 +168,9 @@ public class DriveBookEntry
 
     /// <summary>All book files in this folder (epub, mobi, etc.).</summary>
     public List<DriveBookFile> Files { get; set; } = new();
+
+    //<summary>ModifiedTime of the cover file from Drive, for cache invalidation.</summary>
+    public DateTime? CoverModifiedTime { get; set; }
 }
 
 public class DriveBookFile
@@ -157,4 +178,5 @@ public class DriveBookFile
     public string DriveFileId { get; set; } = "";
     public string FileName { get; set; } = "";
     public string Extension { get; set; } = "";
+    
 }
