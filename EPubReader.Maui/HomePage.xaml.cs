@@ -273,6 +273,13 @@ public partial class HomePage : ContentPage
         }
     }
 
+    // ── Navigation ─────────────────────────────────────────────────────────────────
+
+    private async void StatsCard_Tapped(object? sender, TappedEventArgs e)
+    {
+        await Navigation.PushAsync(new StatsPage());
+    }
+
     // ── Continue reading ──────────────────────────────────────────────────────
 
     private async void ContinueReading_Tapped(object? sender, TappedEventArgs e)

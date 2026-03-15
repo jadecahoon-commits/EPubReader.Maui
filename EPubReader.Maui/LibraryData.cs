@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace EPubReader.Maui;
 
@@ -301,7 +302,8 @@ public static class LibraryData
     // -- STATS -------------------------
     public class ReadingStats
     {
-        /// <summary>Total seconds the user spent on the ReaderPage across all sessions.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+        [Obsolete("Use GetTotalReadingSeconds() which sums SecondsPerDate.")]
         public long TotalReadingSeconds { get; set; } = 0;
 
         /// <summary>
@@ -325,7 +327,6 @@ public static class LibraryData
         if (seconds <= 0) return;
         try
         {
-            _stats.TotalReadingSeconds += seconds;
 
             var fandom = GetFandom(calibreKey);
             if (string.IsNullOrWhiteSpace(fandom))
@@ -368,7 +369,8 @@ public static class LibraryData
     public static ReadingStats GetStats() => _stats;
 
     /// <summary>Total seconds spent on the ReaderPage across all sessions.</summary>
-    public static long GetTotalReadingSeconds() => _stats.TotalReadingSeconds;
+    public static long GetTotalReadingSeconds() =>
+        _stats.SecondsPerDate.Values.Sum();
 
     /// <summary>
     /// Seconds spent reading on a specific local date (default: today).

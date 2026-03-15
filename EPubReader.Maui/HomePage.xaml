@@ -219,7 +219,7 @@
                         StrokeThickness="1">
                         <Grid
                             ColumnDefinitions="*,*"
-                            RowDefinitions="Auto,Auto"
+                            RowDefinitions="Auto,Auto, Auto"
                             RowSpacing="14">
 
                             <!--  Time read this year  -->
@@ -325,6 +325,17 @@
                                                                 Light=#777777}" />
                             </VerticalStackLayout>
 
+                            <Label
+                                Grid.Row="2"
+                                Grid.ColumnSpan="2"
+                                FontSize="12"
+                                HorizontalOptions="End"
+                                Text="View all stats →"
+                                TextColor="#E50914">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="StatsCard_Tapped" />
+                                </Label.GestureRecognizers>
+                            </Label>
                         </Grid>
                     </Border>
 

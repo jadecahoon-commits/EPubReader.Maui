@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="EPubReader.Maui.StatsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    NavigationPage.HasNavigationBar="False"
+    Shell.NavBarIsVisible="False">
+
+    <Grid BackgroundColor="{AppThemeBinding Dark=#0f0f0f, Light=#f5f5f5}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  ═══ Top bar ═══  -->
+        <Grid Padding="20,14" BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button
+                Grid.Column="0"
+                Padding="0"
+                BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
+                                                  Light=#e8e8e8}"
+                Clicked="Back_Click"
+                CornerRadius="4"
+                FontSize="14"
+                HeightRequest="36"
+                Text="←"
+                TextColor="{AppThemeBinding Dark=#bbbbbb,
+                                            Light=#555555}"
+                WidthRequest="44" />
+
+            <Label
+                Grid.Column="1"
+                FontAttributes="Bold"
+                FontSize="18"
+                HorizontalOptions="Center"
+                Text="Reading Stats"
+                TextColor="{AppThemeBinding Dark=White,
+                                            Light=Black}"
+                VerticalOptions="Center" />
+
+            <!--  Spacer to balance layout  -->
+            <BoxView
+                Grid.Column="2"
+                WidthRequest="44"
+                Color="Transparent" />
+        </Grid>
+
+        <!--  ═══ Scrollable content ═══  -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="20,20,20,32" Spacing="24">
+
+                <!--  ── Hero total time ──  -->
+                <Border
+                    Padding="24,20"
+                    BackgroundColor="{AppThemeBinding Dark=#1a0000,
+                                                      Light=#fff5f5}"
+                    Stroke="#E50914"
+                    StrokeShape="RoundRectangle 16"
+                    StrokeThickness="1">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="4">
+                            <Label
+                                CharacterSpacing="1.5"
+                                FontAttributes="Bold"
+                                FontSize="10"
+                                Text="ALL-TIME READING"
+                                TextColor="#E50914" />
+                            <Label
+                                x:Name="TotalTimeLabel"
+                                FontAttributes="Bold"
+                                FontSize="42"
+                                TextColor="{AppThemeBinding Dark=White,
+                                                            Light=Black}" />
+                            <Label
+                                x:Name="TotalTimeSubLabel"
+                                FontSize="13"
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#777777}" />
+                        </VerticalStackLayout>
+                        <Label
+                            Grid.Column="1"
+                            FontSize="48"
+                            Text="📚"
+                            VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+
+                <!--  ── Quick stats row ──  -->
+                <Grid ColumnDefinitions="*,12,*" RowDefinitions="Auto,12,Auto">
+
+                    <!--  Books read  -->
+                    <Border
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Padding="16,14"
+                        BackgroundColor="{AppThemeBinding Dark=#1a1a1a,
+                                                          Light=#ffffff}"
+                        Stroke="{AppThemeBinding Dark=#2a2a2a,
+                                                 Light=#e0e0e0}"
+                        StrokeShape="RoundRectangle 12"
+                        StrokeThickness="1">
+                        <VerticalStackLayout Spacing="2">
+                            <Label FontSize="22" Text="📖" />
+                            <Label
+                                x:Name="BooksReadLabel"
+                                FontAttributes="Bold"
+                                FontSize="28"
+                                TextColor="{AppThemeBinding Dark=White,
+                                                            Light=Black}" />
+                            <Label
+                                x:Name="BooksReadSubLabel"
+                                FontSize="11"
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#777777}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!--  Today  -->
+                    <Border
+                        Grid.Row="0"
+                        Grid.Column="2"
+                        Padding="16,14"
+                        BackgroundColor="{AppThemeBinding Dark=#1a1a1a,
+                                                          Light=#ffffff}"
+                        Stroke="{AppThemeBinding Dark=#2a2a2a,
+                                                 Light=#e0e0e0}"
+                        StrokeShape="RoundRectangle 12"
+                        StrokeThickness="1">
+                        <VerticalStackLayout Spacing="2">
+                            <Label FontSize="22" Text="☀️" />
+                            <Label
+                                x:Name="TodayLabel"
+                                FontAttributes="Bold"
+                                FontSize="28"
+                                TextColor="{AppThemeBinding Dark=White,
+                                                            Light=Black}" />
+                            <Label
+                                x:Name="TodaySubLabel"
+                                FontSize="11"
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#777777}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!--  Avg per day read  -->
+                    <Border
+                        Grid.Row="2"
+                        Grid.Column="0"
+                        Padding="16,14"
+                        BackgroundColor="{AppThemeBinding Dark=#1a1a1a,
+                                                          Light=#ffffff}"
+                        Stroke="{AppThemeBinding Dark=#2a2a2a,
+                                                 Light=#e0e0e0}"
+                        StrokeShape="RoundRectangle 12"
+                        StrokeThickness="1">
+                        <VerticalStackLayout Spacing="2">
+                            <Label FontSize="22" Text="📅" />
+                            <Label
+                                x:Name="AvgPerDayLabel"
+                                FontAttributes="Bold"
+                                FontSize="28"
+                                TextColor="{AppThemeBinding Dark=White,
+                                                            Light=Black}" />
+                            <Label
+                                x:Name="AvgPerDaySubLabel"
+                                FontSize="11"
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#777777}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!--  Top fandom  -->
+                    <Border
+                        Grid.Row="2"
+                        Grid.Column="2"
+                        Padding="16,14"
+                        BackgroundColor="{AppThemeBinding Dark=#1a1a1a,
+                                                          Light=#ffffff}"
+                        Stroke="{AppThemeBinding Dark=#2a2a2a,
+                                                 Light=#e0e0e0}"
+                        StrokeShape="RoundRectangle 12"
+                        StrokeThickness="1">
+                        <VerticalStackLayout Spacing="2">
+                            <Label FontSize="22" Text="⭐" />
+                            <Label
+                                x:Name="TopFandomLabel"
+                                FontAttributes="Bold"
+                                FontSize="15"
+                                LineBreakMode="TailTruncation"
+                                MaxLines="2"
+                                TextColor="{AppThemeBinding Dark=White,
+                                                            Light=Black}" />
+                            <Label
+                                x:Name="TopFandomSubLabel"
+                                FontSize="11"
+                                TextColor="{AppThemeBinding Dark=#888888,
+                                                            Light=#777777}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!--  ── Section: Reading by fandom ──  -->
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        CharacterSpacing="1.5"
+                        FontAttributes="Bold"
+                        FontSize="11"
+                        Text="TIME PER FANDOM"
+                        TextColor="{AppThemeBinding Dark=#888888,
+                                                    Light=#999999}" />
+
+                    <VerticalStackLayout x:Name="FandomBarsStack" Spacing="10" />
+                </VerticalStackLayout>
+
+                <!--  ── Section: Daily reading history ──  -->
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        CharacterSpacing="1.5"
+                        FontAttributes="Bold"
+                        FontSize="11"
+                        Text="DAILY READING (LAST 14 DAYS)"
+                        TextColor="{AppThemeBinding Dark=#888888,
+                                                    Light=#999999}" />
+
+                    <VerticalStackLayout x:Name="DailyBarsStack" Spacing="8" />
+                </VerticalStackLayout>
+
+                <!--  ── Section: Recently read books ──  -->
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        CharacterSpacing="1.5"
+                        FontAttributes="Bold"
+                        FontSize="11"
+                        Text="RECENTLY READ"
+                        TextColor="{AppThemeBinding Dark=#888888,
+                                                    Light=#999999}" />
+
+                    <VerticalStackLayout x:Name="RecentBooksStack" Spacing="8" />
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
