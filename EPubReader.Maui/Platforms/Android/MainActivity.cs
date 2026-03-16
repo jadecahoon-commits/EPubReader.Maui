@@ -12,6 +12,22 @@ namespace EPubReader.Maui
     {
         public static Action<int, string>? OnFolderPicked;
 
+        // ── Add these two ──────────────────────────────────────────────────────
+        public static event Action? AppPaused;
+        public static event Action? AppResumed;
+
+        protected override void OnPause()
+        {
+            base.OnPause();
+            AppPaused?.Invoke();
+        }
+
+        protected override void OnResume()
+        {
+            base.OnResume();
+            AppResumed?.Invoke();
+        }
+
         protected override void OnNewIntent(Intent? intent)
         {
             base.OnNewIntent(intent);

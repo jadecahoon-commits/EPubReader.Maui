@@ -141,23 +141,40 @@ public partial class ReaderPage : ContentPage
     }
 
     private Android.Content.BroadcastReceiver? _screenReceiver;
+    private Android.Content.Context? _registeredReceiverContext;
 
     private void RegisterScreenReceiver()
     {
         if (_screenReceiver != null) return;
         _screenReceiver = new ScreenStateReceiver(
-            onScreenOff: () => {
-                PauseTimer();
-            },
-        onScreenOn: () => {
-            ResumeTimer();
-        }
+            onScreenOff: PauseTimer,
+            onScreenOn: ResumeTimer
         );
         var filter = new Android.Content.IntentFilter();
         filter.AddAction(Android.Content.Intent.ActionScreenOff);
         filter.AddAction(Android.Content.Intent.ActionScreenOn);
-        Android.App.Application.Context.RegisterReceiver(_screenReceiver, filter);
+
+        // ✅ Use Activity context — Application.Context won't receive
+        // ACTION_SCREEN_OFF / ACTION_SCREEN_ON on Android 13+
+        var ctx = Platform.CurrentActivity ?? Android.App.Application.Context;
+        ctx.RegisterReceiver(_screenReceiver, filter);
+        _registeredReceiverContext = ctx;   // ← save so we unregister from the same context
     }
+
+    private void UnregisterScreenReceiver()
+    {
+        if (_screenReceiver == null) return;
+        try
+        {
+            var ctx = _registeredReceiverContext ?? Android.App.Application.Context;
+            ctx.UnregisterReceiver(_screenReceiver);
+        }
+        catch { }
+        _screenReceiver = null;
+        _registeredReceiverContext = null;
+    }
+
+
 
 #if ANDROID
     private void SendTimerServiceIntent(string action)
@@ -173,14 +190,6 @@ public partial class ReaderPage : ContentPage
         catch (Exception ex) { Debug.WriteLine($"SendTimerServiceIntent({action}): {ex.Message}"); }
     }
 #endif
-
-    private void UnregisterScreenReceiver()
-    {
-        if (_screenReceiver == null) return;
-        try { Android.App.Application.Context.UnregisterReceiver(_screenReceiver); }
-        catch { }
-        _screenReceiver = null;
-    }
 
     private sealed class ScreenStateReceiver : Android.Content.BroadcastReceiver
     {
@@ -203,39 +212,59 @@ public partial class ReaderPage : ContentPage
     }
 #endif
 
+    // Replace HookWindowEvents / UnhookWindowEvents with these:
+
     private void HookWindowEvents()
     {
-        var window = this.Window;
-        if (window == null) return;
-        // Always unhook first to avoid double-subscription
-        window.Backgrounding -= OnAppBackgrounding;
-        window.Resumed -= OnAppResumed;
-        window.Backgrounding += OnAppBackgrounding;
-        window.Resumed += OnAppResumed;
+#if ANDROID
+        MainActivity.AppPaused += OnAppBackgrounding_Android;
+        MainActivity.AppResumed += OnAppResumed_Android;
+#else
+    var window = this.Window;
+    if (window == null) return;
+    window.Backgrounding -= OnAppBackgrounding;
+    window.Resumed       -= OnAppResumed;
+    window.Backgrounding += OnAppBackgrounding;
+    window.Resumed       += OnAppResumed;
+#endif
     }
 
     private void UnhookWindowEvents()
     {
-        var window = this.Window;
-        if (window == null) return;
-        window.Backgrounding -= OnAppBackgrounding;
-        window.Resumed -= OnAppResumed;
+#if ANDROID
+        MainActivity.AppPaused -= OnAppBackgrounding_Android;
+        MainActivity.AppResumed -= OnAppResumed_Android;
+#else
+    var window = this.Window;
+    if (window == null) return;
+    window.Backgrounding -= OnAppBackgrounding;
+    window.Resumed       -= OnAppResumed;
+#endif
     }
 
+#if ANDROID
+    private void OnAppBackgrounding_Android()
+    {
+        PauseTimer();
+        StopReadingTimerNotification();
+    }
+
+    private void OnAppResumed_Android()
+    {
+        ResumeTimer();
+        StartReadingTimerNotification();
+    }
+#endif
+
+    // Keep the non-Android versions for Windows:
     private void OnAppBackgrounding(object? sender, BackgroundingEventArgs e)
     {
-        FlushAndClose();   // full flush on true backgrounding (app switch, home button)
-#if ANDROID
-        StopReadingTimerNotification();    // ← ADD if you want it gone on background
-#endif
+        PauseTimer();
     }
 
     private void OnAppResumed(object? sender, EventArgs e)
     {
         ResumeTimer();
-#if ANDROID
-        StartReadingTimerNotification();   
-#endif
     }
 
     // ── Keyboard hook (Windows) ───────────────────────────────────────────────
