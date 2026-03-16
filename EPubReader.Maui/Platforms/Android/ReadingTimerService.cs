@@ -10,44 +10,35 @@ public class ReadingTimerService : Android.App.Service
 {
     public const string ChannelId = "reading_timer_channel";
     public const int NotificationId = 42;
-
-    private System.Timers.Timer? _ticker;
-    private DateTime _startTime;
+    public const string ExtraSeconds = "elapsed_seconds";   // ← new
 
     public override IBinder? OnBind(Intent? intent) => null;
 
     public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
     {
-        _startTime = DateTime.UtcNow;
-
         CreateNotificationChannel();
-        StartForeground(NotificationId, BuildNotification("📖 Reading  ·  0:00"));
 
-        _ticker = new System.Timers.Timer(10_000); // update every 10 seconds
-        _ticker.Elapsed += (_, _) => UpdateNotification();
-        _ticker.AutoReset = true;
-        _ticker.Start();
+        // Every start/update call carries the current elapsed seconds from ReaderPage.
+        var seconds = intent?.GetLongExtra(ExtraSeconds, 0) ?? 0;
+        var text = FormatElapsed(seconds);
 
-        return StartCommandResult.Sticky;
+        StartForeground(NotificationId, BuildNotification(text));
+
+        return StartCommandResult.NotSticky;
     }
 
     public override void OnDestroy()
     {
-        _ticker?.Stop();
-        _ticker?.Dispose();
         StopForeground(StopForegroundFlags.Remove);
         base.OnDestroy();
     }
 
-    private void UpdateNotification()
-    {
-        var elapsed = DateTime.UtcNow - _startTime;
-        var text = elapsed.TotalHours >= 1
-            ? $"📖 Reading  ·  {(int)elapsed.TotalHours}h {elapsed.Minutes:D2}m"
-            : $"📖 Reading  ·  {(int)elapsed.TotalMinutes}m {elapsed.Seconds:D2}s";
-        var nm = (NotificationManager?)GetSystemService(NotificationService);
-        nm?.Notify(NotificationId, BuildNotification(text));
-    }
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static string FormatElapsed(long seconds) =>
+        seconds >= 3600
+            ? $"📖 Reading  ·  {seconds / 3600}h {(seconds % 3600) / 60:D2}m"
+            : $"📖 Reading  ·  {seconds / 60}m {seconds % 60:D2}s";
 
     private Notification BuildNotification(string text)
     {
@@ -67,16 +58,13 @@ public class ReadingTimerService : Android.App.Service
 
     private void CreateNotificationChannel()
     {
-        if (OperatingSystem.IsAndroidVersionAtLeast(26))
+        if (!OperatingSystem.IsAndroidVersionAtLeast(26)) return;
+        var channel = new NotificationChannel(
+            ChannelId, "Reading Timer", NotificationImportance.Low)
         {
-            var channel = new NotificationChannel(
-                ChannelId, "Reading Timer",
-                NotificationImportance.Low)   // Low = no sound, no heads-up
-            {
-                Description = "Shows elapsed reading time"
-            };
-            var nm = (NotificationManager?)GetSystemService(NotificationService);
-            nm?.CreateNotificationChannel(channel);
-        }
+            Description = "Shows elapsed reading time"
+        };
+        var nm = (NotificationManager?)GetSystemService(NotificationService);
+        nm?.CreateNotificationChannel(channel);
     }
 }

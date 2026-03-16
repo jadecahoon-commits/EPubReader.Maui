@@ -24,7 +24,11 @@ public partial class ReaderPage : ContentPage
     private string _filePath = "";
     private BookItem _bookItem = null!;
     private DateTime? _sessionStart;
-    private long _accumulatedSeconds;   
+    private long _accumulatedSeconds;
+
+#if ANDROID
+    private System.Timers.Timer? _notificationTicker;
+#endif
 
 
     // TOC
@@ -92,10 +96,12 @@ public partial class ReaderPage : ContentPage
     {
         try
         {
-            var intent = new Android.Content.Intent(
-                Android.App.Application.Context,
-                typeof(ReadingTimerService));
-            Android.App.Application.Context.StartForegroundService(intent);
+            PushNotificationUpdate();   // show immediately on start
+
+            _notificationTicker = new System.Timers.Timer(10_000);
+            _notificationTicker.Elapsed += (_, _) => PushNotificationUpdate();
+            _notificationTicker.AutoReset = true;
+            _notificationTicker.Start();
         }
         catch (Exception ex) { Debug.WriteLine($"StartReadingTimerNotification: {ex.Message}"); }
     }
@@ -104,6 +110,10 @@ public partial class ReaderPage : ContentPage
     {
         try
         {
+            _notificationTicker?.Stop();
+            _notificationTicker?.Dispose();
+            _notificationTicker = null;
+
             var intent = new Android.Content.Intent(
                 Android.App.Application.Context,
                 typeof(ReadingTimerService));
@@ -112,20 +122,57 @@ public partial class ReaderPage : ContentPage
         catch (Exception ex) { Debug.WriteLine($"StopReadingTimerNotification: {ex.Message}"); }
     }
 
+    private void PushNotificationUpdate()
+    {
+        try
+        {
+            var elapsed = _accumulatedSeconds +
+                (_sessionStart.HasValue
+                    ? (long)(DateTime.UtcNow - _sessionStart.Value).TotalSeconds
+                    : 0);
+
+            var intent = new Android.Content.Intent(
+                Android.App.Application.Context,
+                typeof(ReadingTimerService));
+            intent.PutExtra(ReadingTimerService.ExtraSeconds, elapsed);
+            Android.App.Application.Context.StartForegroundService(intent);
+        }
+        catch (Exception ex) { Debug.WriteLine($"PushNotificationUpdate: {ex.Message}"); }
+    }
+
     private Android.Content.BroadcastReceiver? _screenReceiver;
 
     private void RegisterScreenReceiver()
     {
         if (_screenReceiver != null) return;
         _screenReceiver = new ScreenStateReceiver(
-            onScreenOff: PauseTimer,
-            onScreenOn: ResumeTimer
+            onScreenOff: () => {
+                PauseTimer();
+            },
+        onScreenOn: () => {
+            ResumeTimer();
+        }
         );
         var filter = new Android.Content.IntentFilter();
         filter.AddAction(Android.Content.Intent.ActionScreenOff);
         filter.AddAction(Android.Content.Intent.ActionScreenOn);
         Android.App.Application.Context.RegisterReceiver(_screenReceiver, filter);
     }
+
+#if ANDROID
+    private void SendTimerServiceIntent(string action)
+    {
+        try
+        {
+            var intent = new Android.Content.Intent(
+                Android.App.Application.Context,
+                typeof(ReadingTimerService));
+            intent.SetAction(action);
+            Android.App.Application.Context.StartService(intent);
+        }
+        catch (Exception ex) { Debug.WriteLine($"SendTimerServiceIntent({action}): {ex.Message}"); }
+    }
+#endif
 
     private void UnregisterScreenReceiver()
     {
