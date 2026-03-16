@@ -12,44 +12,6 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!--  ═══ Top bar ═══  -->
-        <Grid Padding="20,14" BackgroundColor="{AppThemeBinding Dark=#1a1a1a, Light=#f0f0f0}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <Button
-                Grid.Column="0"
-                Padding="0"
-                BackgroundColor="{AppThemeBinding Dark=#2a2a2a,
-                                                  Light=#e8e8e8}"
-                Clicked="Back_Click"
-                CornerRadius="4"
-                FontSize="14"
-                HeightRequest="36"
-                Text="←"
-                TextColor="{AppThemeBinding Dark=#bbbbbb,
-                                            Light=#555555}"
-                WidthRequest="44" />
-
-            <Label
-                Grid.Column="1"
-                FontAttributes="Bold"
-                FontSize="18"
-                HorizontalOptions="Center"
-                Text="Reading Stats"
-                TextColor="{AppThemeBinding Dark=White,
-                                            Light=Black}"
-                VerticalOptions="Center" />
-
-            <!--  Spacer to balance layout  -->
-            <BoxView
-                Grid.Column="2"
-                WidthRequest="44"
-                Color="Transparent" />
-        </Grid>
 
         <!--  ═══ Scrollable content ═══  -->
         <ScrollView Grid.Row="1">

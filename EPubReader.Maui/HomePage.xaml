@@ -193,6 +193,12 @@
                                     MaxLines="1"
                                     TextColor="{AppThemeBinding Dark=#888888,
                                                                 Light=#777777}" />
+
+                                <Label
+                                    x:Name="LastBookPosition"
+                                    FontSize="10"
+                                    IsVisible="False"
+                                    TextColor="#E50914" />
                             </VerticalStackLayout>
 
                             <!--  Arrow  -->

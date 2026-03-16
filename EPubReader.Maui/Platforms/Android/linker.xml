@@ -2,5 +2,7 @@
 <linker>
 	<assembly fullname="EPubReader.Maui">
 		<type fullname="EPubReader.Maui.BookWidgetProvider" preserve="all" />
+		<type fullname="EPubReader.Maui.ReadingTimerService" preserve="all" />
+
 	</assembly>
 </linker>

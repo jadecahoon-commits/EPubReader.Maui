@@ -167,6 +167,17 @@ public partial class HomePage : ContentPage
             LastBookTitle.Text = last.Title;
             LastBookAuthor.Text = last.Author;
 
+            var pos = LibraryData.GetPosition(last.CalibreKey);
+            if (pos != null)
+            {
+                LastBookPosition.Text = $"ch {pos.Chapter + 1}  ·  p {pos.Page + 1}";
+                LastBookPosition.IsVisible = true;
+            }
+            else
+            {
+                LastBookPosition.IsVisible = false;
+            }
+
             if (!string.IsNullOrEmpty(last.CoverImagePath))
             {
                 LastBookCover.Source = ImageSource.FromFile(last.CoverImagePath);

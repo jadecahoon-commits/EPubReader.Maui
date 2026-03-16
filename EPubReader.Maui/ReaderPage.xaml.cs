@@ -24,6 +24,7 @@ public partial class ReaderPage : ContentPage
     private string _filePath = "";
     private BookItem _bookItem = null!;
     private DateTime? _sessionStart;
+    private long _accumulatedSeconds;   
 
 
     // TOC
@@ -49,8 +50,18 @@ public partial class ReaderPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        ResumeTimer();          // ← was: _sessionStart = DateTime.UtcNow
+        HookWindowEvents();
+#if ANDROID
+        RegisterScreenReceiver();
 
-        _sessionStart = DateTime.UtcNow;   // always restart timing on each appear
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
+{
+    var status = await Permissions.RequestAsync<Permissions.PostNotifications>();
+    Debug.WriteLine($"[Timer] POST_NOTIFICATIONS permission: {status}");
+}
+        StartReadingTimerNotification();
+#endif
 
         // On Android, Window may be null on first OnAppearing; hook here and
         // also in OnHandlerChanged as a fallback.
@@ -65,10 +76,85 @@ public partial class ReaderPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        UnhookWindowEvents(); // from previous fix
+#if ANDROID
+        UnregisterScreenReceiver();
+        StopReadingTimerNotification();
+#endif
+        UnhookWindowEvents();
         UnhookKeyboard();
-        FlushAndClose();      // was: FlushReadingSession()
+        FlushAndClose();
     }
+
+#if ANDROID
+    // ── Screen-off / screen-on detection (Android only) ──────────────────────
+
+    private void StartReadingTimerNotification()
+    {
+        try
+        {
+            var intent = new Android.Content.Intent(
+                Android.App.Application.Context,
+                typeof(ReadingTimerService));
+            Android.App.Application.Context.StartForegroundService(intent);
+        }
+        catch (Exception ex) { Debug.WriteLine($"StartReadingTimerNotification: {ex.Message}"); }
+    }
+
+    private void StopReadingTimerNotification()
+    {
+        try
+        {
+            var intent = new Android.Content.Intent(
+                Android.App.Application.Context,
+                typeof(ReadingTimerService));
+            Android.App.Application.Context.StopService(intent);
+        }
+        catch (Exception ex) { Debug.WriteLine($"StopReadingTimerNotification: {ex.Message}"); }
+    }
+
+    private Android.Content.BroadcastReceiver? _screenReceiver;
+
+    private void RegisterScreenReceiver()
+    {
+        if (_screenReceiver != null) return;
+        _screenReceiver = new ScreenStateReceiver(
+            onScreenOff: PauseTimer,
+            onScreenOn: ResumeTimer
+        );
+        var filter = new Android.Content.IntentFilter();
+        filter.AddAction(Android.Content.Intent.ActionScreenOff);
+        filter.AddAction(Android.Content.Intent.ActionScreenOn);
+        Android.App.Application.Context.RegisterReceiver(_screenReceiver, filter);
+    }
+
+    private void UnregisterScreenReceiver()
+    {
+        if (_screenReceiver == null) return;
+        try { Android.App.Application.Context.UnregisterReceiver(_screenReceiver); }
+        catch { }
+        _screenReceiver = null;
+    }
+
+    private sealed class ScreenStateReceiver : Android.Content.BroadcastReceiver
+    {
+        private readonly Action _onScreenOff;
+        private readonly Action _onScreenOn;
+
+        public ScreenStateReceiver(Action onScreenOff, Action onScreenOn)
+        {
+            _onScreenOff = onScreenOff;
+            _onScreenOn = onScreenOn;
+        }
+
+        public override void OnReceive(Android.Content.Context? context, Android.Content.Intent? intent)
+        {
+            if (intent?.Action == Android.Content.Intent.ActionScreenOff)
+                _onScreenOff();
+            else if (intent?.Action == Android.Content.Intent.ActionScreenOn)
+                _onScreenOn();
+        }
+    }
+#endif
 
     private void HookWindowEvents()
     {
@@ -91,12 +177,18 @@ public partial class ReaderPage : ContentPage
 
     private void OnAppBackgrounding(object? sender, BackgroundingEventArgs e)
     {
-        FlushAndClose();      // was: FlushReadingSession() + SavePosition()
+        FlushAndClose();   // full flush on true backgrounding (app switch, home button)
+#if ANDROID
+        StopReadingTimerNotification();    // ← ADD if you want it gone on background
+#endif
     }
 
     private void OnAppResumed(object? sender, EventArgs e)
     {
-        _sessionStart = DateTime.UtcNow;
+        ResumeTimer();
+#if ANDROID
+        StartReadingTimerNotification();   
+#endif
     }
 
     // ── Keyboard hook (Windows) ───────────────────────────────────────────────
@@ -641,23 +733,42 @@ public partial class ReaderPage : ContentPage
     {
         try
         {
-            // 1. Update position in-memory (no disk write inside SetPosition)
             if (!string.IsNullOrEmpty(_filePath))
                 LibraryData.SetPosition(_calibreKey, _currentChapter, _currentPage);
 
-            // 2. Accumulate time in-memory (no disk write inside RecordReadingSession)
-            if (_sessionStart.HasValue)
+            PauseTimer(); // snapshots any running time into _accumulatedSeconds
+            if (_accumulatedSeconds > 0)
             {
-                var elapsed = (long)(DateTime.UtcNow - _sessionStart.Value).TotalSeconds;
-                if (elapsed > 0)
-                    LibraryData.RecordReadingSession(_calibreKey, elapsed);
-                _sessionStart = null;
+                LibraryData.RecordReadingSession(_calibreKey, _accumulatedSeconds);
+                _accumulatedSeconds = 0;
             }
 
             // 3. Single disk write covering everything
             LibraryData.Save();
         }
         catch (Exception ex) { Debug.WriteLine($"FlushAndClose error: {ex.Message}"); }
+    }
+
+    /// <summary>
+    /// Snapshots elapsed time into _accumulatedSeconds and clears _sessionStart.
+    /// Call on screen-off or backgrounding — does NOT write to disk.
+    /// </summary>
+    private void PauseTimer()
+    {
+        if (_sessionStart.HasValue)
+        {
+            _accumulatedSeconds += (long)(DateTime.UtcNow - _sessionStart.Value).TotalSeconds;
+            _sessionStart = null;
+        }
+    }
+
+    /// <summary>
+    /// Restarts _sessionStart so time accumulates again.
+    /// Call on screen-on or foregrounding.
+    /// </summary>
+    private void ResumeTimer()
+    {
+        _sessionStart = DateTime.UtcNow;
     }
 
     // ── HTML builder ──────────────────────────────────────────────────────────
