@@ -44,7 +44,7 @@ namespace EPubReader.Maui
 
         internal static void UpdateWidget(Context context, AppWidgetManager manager, int widgetId)
         {
-            try  // ✅ guard the entire method
+            try  
             {
                 var views = new RemoteViews(context.PackageName!, Resource.Layout.book_widget);
                 // Read from SharedPreferences — written by the MAUI app via LibraryData
@@ -54,7 +54,11 @@ namespace EPubReader.Maui
                 var filePath = prefs.GetString(PrefFilePath, null);
                 var coverPath = prefs.GetString(PrefCoverPath, null);
 
-                if (!string.IsNullOrEmpty(coverPath) && System.IO.File.Exists(coverPath))
+                // Replace the cover check:
+                if (!string.IsNullOrEmpty(coverPath)
+                    && !coverPath.StartsWith("content://")   // widget can't read content URIs
+                    && !coverPath.StartsWith("gdrive://")    // same for gdrive
+                    && System.IO.File.Exists(coverPath))
                 {
                     try
                     {

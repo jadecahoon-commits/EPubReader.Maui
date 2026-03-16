@@ -26,6 +26,7 @@ public partial class HomePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        LibraryData.Load();
 
 #if ANDROID
         try
@@ -80,7 +81,6 @@ public partial class HomePage : ContentPage
         }
 #endif
 
-        LibraryData.Load();
         LoadFandoms();
         LoadLastReadBook();
         LoadReadingStats();

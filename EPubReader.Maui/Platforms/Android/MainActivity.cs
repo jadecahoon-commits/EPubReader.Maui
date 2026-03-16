@@ -32,6 +32,49 @@ namespace EPubReader.Maui
         {
             base.OnNewIntent(intent);
             Intent = intent; // update the activity's current intent
+
+            // If a widget tap arrived while the app is already running, handle it immediately
+            var filePath = intent?.GetStringExtra("open_book_file_path");
+            if (!string.IsNullOrEmpty(filePath))
+                OpenBookFromWidget(filePath);
+        }
+
+        private void OpenBookFromWidget(string filePath)
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                try
+                {
+                    var last = LibraryData.LastReadBook;
+                    if (last == null) return;
+
+                    // Find the current NavigationPage and push ReaderPage
+                    if (Microsoft.Maui.Controls.Application.Current?.MainPage is NavigationPage navPage)
+                    {
+                        // Pop back to root (HomePage) first if deep in stack
+                        await navPage.PopToRootAsync(false);
+                        var book = new BookItem
+                        {
+                            CalibreKey = last.CalibreKey,
+                            Title = last.Title,
+                            Author = last.Author,
+                            CoverImagePath = last.CoverImagePath,
+                            FilePath = filePath,
+                            FileType = System.IO.Path.GetExtension(last.CalibreKey).TrimStart('.')
+                        };
+                        var scanner = IPlatformApplication.Current!.Services
+                            .GetRequiredService<ILibraryScanner>();
+                        await navPage.PushAsync(new ReaderPage(book, scanner));
+
+                        // Clear the extra so OnAppearing doesn't double-fire
+                        Intent?.RemoveExtra("open_book_file_path");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Android.Util.Log.Error("MainActivity", $"OpenBookFromWidget failed: {ex}");
+                }
+            });
         }
 
         protected override void OnActivityResult(int requestCode, Result resultCode, Android.Content.Intent? data)

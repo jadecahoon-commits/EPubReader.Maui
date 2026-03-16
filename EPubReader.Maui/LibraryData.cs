@@ -156,7 +156,34 @@ public static class LibraryData
                 editor.PutString("last_title", book.Title ?? "");
                 editor.PutString("last_author", book.Author ?? "");
                 editor.PutString("last_file_path", book.FilePath ?? "");
-                editor.PutString("last_cover_path", book.CoverImagePath ?? "");
+
+
+                var coverPath = book.CoverImagePath ?? "";
+
+                if (coverPath.StartsWith("content://"))
+                {
+                    try
+                    {
+                        var localCover = System.IO.Path.Combine(ctx.CacheDir!.AbsolutePath, "widget_cover.jpg");
+                        var resolver = ctx.ContentResolver;
+                        var uri = Android.Net.Uri.Parse(coverPath);
+                        using var input = resolver?.OpenInputStream(uri!);
+                        if (input != null)
+                        {
+                            using var output = System.IO.File.Create(localCover);
+                            input.CopyTo(output);
+                            coverPath = localCover; // Use local path for the widget
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Android.Util.Log.Warn("BookWidget", $"Cover copy failed: {ex.Message}");
+                        coverPath = "";
+                    }
+                }
+
+                editor.PutString("last_cover_path", coverPath);
+
 
                 editor.Commit();
 
