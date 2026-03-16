@@ -19,6 +19,7 @@ namespace EPubReader.Maui
         public const string PrefTitle = "last_title";
         public const string PrefAuthor = "last_author"; 
         public const string PrefFilePath = "last_file_path";
+        public const string PrefCoverPath = "last_cover_path";
 
 
         public override void OnUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds)
@@ -51,6 +52,27 @@ namespace EPubReader.Maui
                 var title = prefs.GetString(PrefTitle, null);
                 var author = prefs.GetString(PrefAuthor, null);
                 var filePath = prefs.GetString(PrefFilePath, null);
+                var coverPath = prefs.GetString(PrefCoverPath, null);
+
+                if (!string.IsNullOrEmpty(coverPath) && System.IO.File.Exists(coverPath))
+                {
+                    try
+                    {
+                        var bitmap = Android.Graphics.BitmapFactory.DecodeFile(coverPath);
+                        if (bitmap != null)
+                        {
+                            views.SetImageViewBitmap(Resource.Id.widget_cover, bitmap);
+                            views.SetViewVisibility(Resource.Id.widget_cover, Android.Views.ViewStates.Visible);
+                            views.SetViewVisibility(Resource.Id.widget_scrim, Android.Views.ViewStates.Visible);
+                            views.SetViewVisibility(Resource.Id.widget_bg_solid, Android.Views.ViewStates.Gone);
+                        }
+                    }
+                    catch (Exception coverEx)
+                    {
+                        Android.Util.Log.Warn("BookWidget", $"Cover load failed: {coverEx.Message}");
+                    }
+                }
+
 
 
                 if (string.IsNullOrEmpty(title))

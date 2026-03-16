@@ -22,7 +22,8 @@ public partial class StatsPage : ContentPage
             var stats = LibraryData.GetStats();
 
             // ── Hero: total time ──────────────────────────────────────────────
-            var total = stats.TotalReadingSeconds;
+            var total = LibraryData.GetTotalReadingSeconds();
+
             if (total >= 3600)
             {
                 var hrs = total / 3600.0;

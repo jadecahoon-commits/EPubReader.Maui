@@ -257,7 +257,7 @@ public partial class HomePage : ContentPage
             StatsTotalBooksSubLabel.Text = totalBooks == 1 ? "book read" : "books read";
 
             // Time read today
-            var todaySeconds = LibraryData.GetReadingSecondsForDate(); 
+            var todaySeconds = LibraryData.GetReadingSecondsForDate();
             if (todaySeconds <= 0)
             {
                 StatsTodayTimeLabel.Text = "—";
@@ -272,8 +272,9 @@ public partial class HomePage : ContentPage
             else
             {
                 var hrs = todaySeconds / 3600;
-                StatsTodayTimeLabel.Text = $"{hrs}h";
-                StatsTodayTimeSubLabel.Text = hrs == 1 ? "hour today" : "hours today";
+                var mins = (todaySeconds % 3600) / 60;
+                StatsTodayTimeLabel.Text = $"{hrs}:{mins:D2}";
+                StatsTodayTimeSubLabel.Text = "hours today";
             }
 
             StatsCard.IsVisible = true;
