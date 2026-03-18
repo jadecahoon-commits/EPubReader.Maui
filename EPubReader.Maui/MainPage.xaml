@@ -207,6 +207,22 @@
                                     TextColor="{AppThemeBinding Dark=#bbbbbb,
                                                                 Light=#555555}" />
                             </Border>
+                            <Border
+                                x:Name="SelectedBookReadBadge"
+                                Padding="8,2"
+                                BackgroundColor="{AppThemeBinding Dark=#1a3a1a,
+                                                                  Light=#e6f4e6}"
+                                IsVisible="False"
+                                StrokeShape="RoundRectangle 3"
+                                StrokeThickness="0"
+                                VerticalOptions="Center">
+                                <Label
+                                    x:Name="SelectedBookReadLabel"
+                                    CharacterSpacing="1"
+                                    FontSize="10"
+                                    TextColor="{AppThemeBinding Dark=#66cc66,
+                                                                Light=#2a7a2a}" />
+                            </Border>
                         </HorizontalStackLayout>
                         <Label
                             x:Name="SelectedBookAuthor"

@@ -24,17 +24,11 @@ public partial class StatsPage : ContentPage
             // ── Hero: total time ──────────────────────────────────────────────
             var total = LibraryData.GetTotalReadingSeconds();
 
-            if (total >= 3600)
             {
-                var hrs = total / 3600.0;
-                TotalTimeLabel.Text = $"{hrs:F1}h";
-                TotalTimeSubLabel.Text = "total hours read";
-            }
-            else
-            {
-                var mins = total / 60;
-                TotalTimeLabel.Text = $"{mins}m";
-                TotalTimeSubLabel.Text = "total minutes read";
+                var h = total / 3600;
+                var m = (total % 3600) / 60;
+                TotalTimeLabel.Text = $"{h}:{m:D2}";
+                TotalTimeSubLabel.Text = "total time read";
             }
 
             // ── Books read ────────────────────────────────────────────────────
@@ -44,45 +38,28 @@ public partial class StatsPage : ContentPage
 
             // ── Today ─────────────────────────────────────────────────────────
             var todaySeconds = LibraryData.GetReadingSecondsForDate();
-            if (todaySeconds <= 0)
             {
-                TodayLabel.Text = "—";
-                TodaySubLabel.Text = "no reading today";
-            }
-            else if (todaySeconds < 3600)
-            {
-                var mins = todaySeconds / 60;
-                TodayLabel.Text = $"{mins}m";
-                TodaySubLabel.Text = mins == 1 ? "min today" : "mins today";
-            }
-            else
-            {
-                var hrs = todaySeconds / 3600.0;
-                TodayLabel.Text = $"{hrs:F1}h";
-                TodaySubLabel.Text = "hours today";
+                var h = todaySeconds / 3600;
+                var m = (todaySeconds % 3600) / 60;
+                TodayLabel.Text = $"{h}:{m:D2}";
+                TodaySubLabel.Text = "time today";
             }
 
             // ── Average per active day ────────────────────────────────────────
             var perDate = stats.SecondsPerDate;
-            if (perDate.Count > 0)
-            {
-                var avgSeconds = perDate.Values.Sum() / (double)perDate.Count;
-                if (avgSeconds >= 3600)
+            {if (perDate.Count > 0)
                 {
-                    AvgPerDayLabel.Text = $"{avgSeconds / 3600:F1}h";
+                    var avgSeconds = perDate.Values.Sum() / (double)perDate.Count;
+                    var h = (long)avgSeconds / 3600;
+                    var m = ((long)avgSeconds % 3600) / 60;
+                    AvgPerDayLabel.Text = $"{h}:{m:D2}";
                     AvgPerDaySubLabel.Text = "avg per session day";
                 }
                 else
                 {
-                    var mins = (long)(avgSeconds / 60);
-                    AvgPerDayLabel.Text = $"{mins}m";
+                    AvgPerDayLabel.Text = "—";
                     AvgPerDaySubLabel.Text = "avg per session day";
                 }
-            }
-            else
-            {
-                AvgPerDayLabel.Text = "—";
-                AvgPerDaySubLabel.Text = "avg per session day";
             }
 
             // ── Top fandom ────────────────────────────────────────────────────
@@ -281,12 +258,14 @@ public partial class StatsPage : ContentPage
             // Day label
             col.Children.Add(new Label
             {
-                Text = day.ToString("d").TrimStart('0'),   // e.g. "8", "15"
+                Text = day.ToString("MMM d"),
                 FontSize = 9,
                 TextColor = isToday
                     ? Color.FromArgb("#E50914")
                     : Color.FromArgb("#888888"),
-                HorizontalOptions = LayoutOptions.Center
+                HorizontalOptions = LayoutOptions.Center,
+                Rotation = -65,
+                Margin = new Thickness(0, 4, 0, 30)
             });
 
             barGrid.Children.Add(col);
@@ -394,11 +373,9 @@ public partial class StatsPage : ContentPage
 
     private static string FormatSeconds(long seconds)
     {
-        if (seconds >= 3600)
-            return $"{seconds / 3600.0:F1}h";
-        if (seconds >= 60)
-            return $"{seconds / 60}m";
-        return $"{seconds}s";
+        var h = seconds / 3600;
+        var m = (seconds % 3600) / 60;
+        return $"{h}:{m:D2}";
     }
 
     private static string FormatRelativeDate(DateTime utcDate)

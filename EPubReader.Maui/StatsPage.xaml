@@ -67,7 +67,10 @@
                                                  Light=#e0e0e0}"
                         StrokeShape="RoundRectangle 12"
                         StrokeThickness="1">
-                        <VerticalStackLayout Spacing="2">
+                        <VerticalStackLayout
+                            HorizontalOptions="Center"
+                            Spacing="2"
+                            VerticalOptions="Center">
                             <Label FontSize="22" Text="📖" />
                             <Label
                                 x:Name="BooksReadLabel"
@@ -94,7 +97,10 @@
                                                  Light=#e0e0e0}"
                         StrokeShape="RoundRectangle 12"
                         StrokeThickness="1">
-                        <VerticalStackLayout Spacing="2">
+                        <VerticalStackLayout
+                            HorizontalOptions="Center"
+                            Spacing="2"
+                            VerticalOptions="Center">
                             <Label FontSize="22" Text="☀️" />
                             <Label
                                 x:Name="TodayLabel"
@@ -121,7 +127,10 @@
                                                  Light=#e0e0e0}"
                         StrokeShape="RoundRectangle 12"
                         StrokeThickness="1">
-                        <VerticalStackLayout Spacing="2">
+                        <VerticalStackLayout
+                            HorizontalOptions="Center"
+                            Spacing="2"
+                            VerticalOptions="Center">
                             <Label FontSize="22" Text="📅" />
                             <Label
                                 x:Name="AvgPerDayLabel"
@@ -148,7 +157,10 @@
                                                  Light=#e0e0e0}"
                         StrokeShape="RoundRectangle 12"
                         StrokeThickness="1">
-                        <VerticalStackLayout Spacing="2">
+                        <VerticalStackLayout
+                            HorizontalOptions="Center"
+                            Spacing="2"
+                            VerticalOptions="Center">
                             <Label FontSize="22" Text="⭐" />
                             <Label
                                 x:Name="TopFandomLabel"

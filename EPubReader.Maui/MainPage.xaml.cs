@@ -774,6 +774,23 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
             SelectedBookType.Text = book.FileType.ToUpperInvariant();
             UpdateMarkReadButton(_selectedBook);
 
+            // Read status badge
+            var readCount = LibraryData.GetReadCount(book.CalibreKey);
+            if (readCount > 0)
+            {
+                SelectedBookReadLabel.Text = readCount == 1 ? "READ" : $"READ ×{readCount}";
+                SelectedBookReadBadge.IsVisible = true;
+            }
+            else
+            {
+                SelectedBookReadLabel.Text = "UNREAD";
+                SelectedBookReadBadge.BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                    ? Color.FromArgb("#2a2a2a") : Color.FromArgb("#e8e8e8");
+                SelectedBookReadLabel.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                    ? Color.FromArgb("#888888") : Color.FromArgb("#999999");
+                SelectedBookReadBadge.IsVisible = true;
+            }
+
             CategoryInput.Text = book.Category;
             SelectedBookDescription.Text = BuildDescriptionText(book);
 
