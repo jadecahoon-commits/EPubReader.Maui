@@ -579,11 +579,6 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
             card.SetAppThemeColor(Border.BackgroundColorProperty,
                 Color.FromArgb("#ffffff"), Color.FromArgb("#1a1a1a"));
 
-            card.BindingContextChanged += (s, _) =>
-            {
-                if (card.BindingContext is BookItem book)
-                    _cardViews[book] = card;
-            };
 
 
             var grid = new Grid { InputTransparent = false, BackgroundColor = Colors.Transparent };
@@ -742,6 +737,38 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
             };
             card.GestureRecognizers.Add(cardTap);
 
+            // ── badge — top-left corner, shown only for unread books ──────────────
+            var newBadge = new Border
+            {
+                Padding = new Thickness(6, 2),
+                BackgroundColor = Color.FromArgb("#E50914"),
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 4 },
+                StrokeThickness = 0,
+                HorizontalOptions = LayoutOptions.Start,
+                VerticalOptions = LayoutOptions.Start,
+                Margin = new Thickness(8, 8, 0, 0),
+                InputTransparent = true,
+                IsVisible = false   // default hidden; set in BindingContextChanged
+            };
+            newBadge.Content = new Label
+            {
+                Text = "NEW",
+                FontSize = 9,
+                FontAttributes = FontAttributes.Bold,
+                CharacterSpacing = 1.2,
+                TextColor = Colors.White
+            };
+            grid.Children.Add(newBadge);
+
+            card.BindingContextChanged += (s, _) =>
+            {
+                if (card.BindingContext is BookItem book)
+                {
+                    _cardViews[book] = card;
+                    newBadge.IsVisible = LibraryData.GetPosition(book.CalibreKey) == null;
+                }
+            };
+
             card.Content = grid;
 
             return card;
@@ -779,6 +806,10 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
             if (readCount > 0)
             {
                 SelectedBookReadLabel.Text = readCount == 1 ? "READ" : $"READ ×{readCount}";
+                SelectedBookReadBadge.BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                    ? Color.FromArgb("#1a3a1a") : Color.FromArgb("#e6f4e6");
+                SelectedBookReadLabel.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                    ? Color.FromArgb("#66cc66") : Color.FromArgb("#2a7a2a");
                 SelectedBookReadBadge.IsVisible = true;
             }
             else
@@ -947,6 +978,30 @@ private static CollectionView? FindCollectionViewForBook(VisualElement parent, B
 
             SelectedBookDescription.Text = BuildDescriptionText(book);
 
+            SelectedBookTitle.Text = book.Title;
+            SelectedBookAuthor.Text = $"by {book.Author}";
+            SelectedBookType.Text = book.FileType.ToUpperInvariant();
+
+            // Read status badge
+            var readCount = LibraryData.GetReadCount(book.CalibreKey);
+            if (readCount > 0)
+            {
+                SelectedBookReadLabel.Text = readCount == 1 ? "READ" : $"READ ×{readCount}";
+                SelectedBookReadBadge.BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                    ? Color.FromArgb("#1a3a1a") : Color.FromArgb("#e6f4e6");
+                SelectedBookReadLabel.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                    ? Color.FromArgb("#66cc66") : Color.FromArgb("#2a7a2a");
+                SelectedBookReadBadge.IsVisible = true;
+            }
+            else
+            {
+                SelectedBookReadLabel.Text = "UNREAD";
+                SelectedBookReadBadge.BackgroundColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                    ? Color.FromArgb("#2a2a2a") : Color.FromArgb("#e8e8e8");
+                SelectedBookReadLabel.TextColor = Application.Current?.RequestedTheme == AppTheme.Dark
+                    ? Color.FromArgb("#888888") : Color.FromArgb("#999999");
+                SelectedBookReadBadge.IsVisible = true;
+            }
 
             DescriptionPanel.IsVisible = true;
             ScrollToCategoryAsync(book.Category);
