@@ -117,6 +117,13 @@ public static class HighlightData
         return _highlights.ToList();
     }
 
+    public static void DeleteHighlight(string highlightId)
+    {
+        EnsureLoaded();
+        _highlights.RemoveAll(h => h.Id == highlightId);
+        Save();
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static void EnsureLoaded() { if (!_loaded) Load(); }

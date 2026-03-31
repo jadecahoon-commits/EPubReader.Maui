@@ -175,7 +175,31 @@ public partial class HighlightsPage : ContentPage
                             HorizontalOptions = LayoutOptions.Center
                         }
                     };
-                    cardGrid.Add(badge, 2, 0);
+                    var rightStack = new VerticalStackLayout { Spacing = 6, VerticalOptions = LayoutOptions.Start };
+                    rightStack.Children.Add(badge);
+
+                    var deleteBtn = new Button
+                    {
+                        Text = "🗑",
+                        FontSize = 14,
+                        BackgroundColor = Colors.Transparent,
+                        BorderWidth = 0,
+                        Padding = new Thickness(0),
+                        WidthRequest = 32,
+                        HeightRequest = 32,
+                        HorizontalOptions = LayoutOptions.Center
+                    };
+                    var capturedId = h.Id;
+                    deleteBtn.Clicked += async (s, _) =>
+                    {
+                        bool confirmed = await DisplayAlert("Delete", "Remove this highlight?", "Delete", "Cancel");
+                        if (!confirmed) return;
+                        HighlightData.DeleteHighlight(capturedId);
+                        BuildHighlightsList();
+                    };
+                    rightStack.Children.Add(deleteBtn);
+
+                    cardGrid.Add(rightStack, 2, 0);
 
                     card.Content = cardGrid;
                     HighlightsStack.Children.Add(card);
@@ -196,6 +220,7 @@ public partial class HighlightsPage : ContentPage
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
+
 
     private static bool IsAppDark() =>
         Application.Current?.RequestedTheme == AppTheme.Dark;

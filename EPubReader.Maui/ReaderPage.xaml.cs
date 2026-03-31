@@ -615,6 +615,24 @@ public partial class ReaderPage : ContentPage
 
     private async void OnWebViewNavigating(object? sender, WebNavigatingEventArgs e)
     {
+        if (e.Url.StartsWith("reader://selection/star/") ||
+            e.Url.StartsWith("reader://selection/alert/"))
+        {
+            e.Cancel = true;
+            var isAlert = e.Url.StartsWith("reader://selection/alert/");
+            var prefix = isAlert ? "reader://selection/alert/" : "reader://selection/star/";
+            var text = Uri.UnescapeDataString(e.Url[prefix.Length..]);
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                var h = HighlightData.AddHighlight(_calibreKey, _currentChapter, text);
+                if (isAlert) HighlightData.ToggleCategory(h.Id); // flip to needs_corrections
+                var escaped = text.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "");
+                await ContentWebView.EvaluateJavaScriptAsync(
+                    $"window.__applyHighlight('{escaped}', '{h.Id}', '{h.Category}')");
+            }
+            return;
+        }
+
         // ── Highlight: text selected ──
         if (e.Url.StartsWith("reader://highlight/add/"))
         {
@@ -1130,16 +1148,53 @@ span {{ color: inherit; background: transparent; }}
   }});
 
 // ── Highlight: detect text selection ──
+  var __selPopup = (function() {{
+    var el = document.createElement('div');
+    el.id = '__sel_popup';
+    el.style.cssText = 'display:none;position:fixed;z-index:9999;background:#222;border-radius:12px;padding:6px 10px;box-shadow:0 4px 16px rgba(0,0,0,.5);gap:8px;';
+    ['⭐','🚨'].forEach(function(emoji, i) {{
+      var btn = document.createElement('button');
+      btn.textContent = emoji;
+      btn.style.cssText = 'font-size:26px;background:none;border:none;cursor:pointer;padding:4px;';
+      btn.addEventListener('pointerdown', function(e) {{
+        e.stopPropagation();
+        var action = i === 0 ? 'star' : 'alert';
+        window.location.href = 'reader://selection/' + action + '/' + encodeURIComponent(el.__text || '');
+        hide();
+      }});
+      el.appendChild(btn);
+    }});
+    document.body.appendChild(el);
+    function show(x, y, text) {{
+      el.__text = text;
+      el.style.display = 'flex';
+      var pw = el.offsetWidth || 100;
+      el.style.left = Math.min(x, window.innerWidth - pw - 8) + 'px';
+      el.style.top  = (y + 8) + 'px';
+    }}
+    function hide() {{
+      el.style.display = 'none';
+      var sel = window.getSelection();
+      if (sel) sel.removeAllRanges();
+    }}
+    document.addEventListener('pointerdown', function(e) {{
+      if (!el.contains(e.target)) hide();
+    }});
+    return {{ show: show, hide: hide }};
+  }})();
+
   document.addEventListener('mouseup', onSelectionEnd);
   document.addEventListener('touchend', onSelectionEnd);
 
-  function onSelectionEnd() {{
+  function onSelectionEnd(e) {{
     setTimeout(function() {{
       var sel = window.getSelection();
       var text = sel ? sel.toString().trim() : '';
       if (text.length > 0) {{
-        window.location.href = 'reader://highlight/add/' + encodeURIComponent(text);
-        sel.removeAllRanges();
+        var r = sel.getRangeAt(0).getBoundingClientRect();
+        __selPopup.show(r.left + r.width / 2 - 50, r.bottom, text);
+      }} else {{
+        __selPopup.hide();
       }}
     }}, 50);
   }}
