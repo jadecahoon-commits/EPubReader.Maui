@@ -225,7 +225,7 @@
                         StrokeThickness="1">
                         <Grid
                             ColumnDefinitions="*,*"
-                            RowDefinitions="Auto,Auto, Auto"
+                            RowDefinitions="Auto,Auto, Auto, Auto"
                             RowSpacing="14">
 
                             <!--  Time read this year  -->
@@ -340,6 +340,19 @@
                                 TextColor="#E50914">
                                 <Label.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="StatsCard_Tapped" />
+                                </Label.GestureRecognizers>
+                            </Label>
+
+                            <Label
+                                Grid.Row="3"
+                                Grid.ColumnSpan="2"
+                                Margin="0,6,0,0"
+                                FontSize="12"
+                                HorizontalOptions="End"
+                                Text="View highlights →"
+                                TextColor="#3b82f6">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="ViewHighlights_Tapped" />
                                 </Label.GestureRecognizers>
                             </Label>
                         </Grid>

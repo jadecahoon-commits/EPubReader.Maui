@@ -292,6 +292,11 @@ public partial class HomePage : ContentPage
         await Navigation.PushAsync(new StatsPage());
     }
 
+    private async void ViewHighlights_Tapped(object? sender, TappedEventArgs e)
+    {
+        await Navigation.PushAsync(new HighlightsPage());
+    }
+
     // ── Continue reading ──────────────────────────────────────────────────────
 
     private async void ContinueReading_Tapped(object? sender, TappedEventArgs e)

@@ -615,6 +615,34 @@ public partial class ReaderPage : ContentPage
 
     private async void OnWebViewNavigating(object? sender, WebNavigatingEventArgs e)
     {
+        // ── Highlight: text selected ──
+        if (e.Url.StartsWith("reader://highlight/add/"))
+        {
+            e.Cancel = true;
+            var encoded = e.Url["reader://highlight/add/".Length..];
+            var text = Uri.UnescapeDataString(encoded);
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                var h = HighlightData.AddHighlight(_calibreKey, _currentChapter, text);
+                // Tell the JS to apply the visual highlight immediately
+                var escapedText = text.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "");
+                await ContentWebView.EvaluateJavaScriptAsync(
+                    $"window.__applyHighlight('{escapedText}', '{h.Id}', '{h.Category}')");
+            }
+            return;
+        }
+
+        // ── Highlight: long-press toggle category ──
+        if (e.Url.StartsWith("reader://highlight/toggle/"))
+        {
+            e.Cancel = true;
+            var highlightId = e.Url["reader://highlight/toggle/".Length..];
+            HighlightData.ToggleCategory(highlightId);
+            // Refresh all highlights for this chapter in JS
+            await InjectHighlightsAsync();
+            return;
+        }
+
         // Intercept reader://nav/* URLs emitted by the JS inside the page
         if (!e.Url.StartsWith("reader://nav/")) return;
 
@@ -657,9 +685,30 @@ public partial class ReaderPage : ContentPage
 
                 await GoToPageAsync(targetPage);
             }
+            await InjectHighlightsAsync();
         }
         catch (Exception ex) { Debug.WriteLine($"RecalculatePages error: {ex.Message}"); }
         finally { LoadingOverlay.IsVisible = false; }
+    }
+
+    /// <summary>
+    /// Sends existing highlights for the current chapter into the WebView JS.
+    /// </summary>
+    private async Task InjectHighlightsAsync()
+    {
+        try
+        {
+            var highlights = HighlightData.GetHighlights(_calibreKey, _currentChapter);
+            if (highlights.Count == 0) return;
+
+            foreach (var h in highlights)
+            {
+                var escapedText = h.Text.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "");
+                await ContentWebView.EvaluateJavaScriptAsync(
+                    $"window.__applyHighlight('{escapedText}', '{h.Id}', '{h.Category}')");
+            }
+        }
+        catch (Exception ex) { Debug.WriteLine($"InjectHighlights error: {ex.Message}"); }
     }
 
     private async Task GoToPageAsync(int page)
@@ -1001,6 +1050,11 @@ sub {{ vertical-align: sub; font-size: 0.75em; }}
 /* Epub often uses span with inline style or class for italics/bold — don't nuke them */
 span {{ color: inherit; background: transparent; }}
 
+
+.hl-favourites {{ background-color: rgba(248, 222, 126, 1); border-radius: 2px; }}
+.hl-needs_corrections {{ text-decoration: underline; color: {fg}; text-underline-offset: 3px; background: transparent; }}
+
+
 </style>
 </head>
 <body>
@@ -1074,6 +1128,80 @@ span {{ color: inherit; background: transparent; }}
     computeLayout();
     window.__goToPage(curPage);
   }});
+
+// ── Highlight: detect text selection ──
+  document.addEventListener('mouseup', onSelectionEnd);
+  document.addEventListener('touchend', onSelectionEnd);
+
+  function onSelectionEnd() {{
+    setTimeout(function() {{
+      var sel = window.getSelection();
+      var text = sel ? sel.toString().trim() : '';
+      if (text.length > 0) {{
+        window.location.href = 'reader://highlight/add/' + encodeURIComponent(text);
+        sel.removeAllRanges();
+      }}
+    }}, 50);
+  }}
+
+  // ── Highlight: apply a highlight mark to matching text ──
+  window.__applyHighlight = function(text, id, category) {{
+    // Remove existing mark for this id (re-render on toggle)
+    var existing = document.querySelectorAll('mark[data-hlid=""' + id + '""]');
+    existing.forEach(function(el) {{ el.outerHTML = el.innerHTML; }});
+
+    var cssClass = category === 'needs_corrections' ? 'hl-needs_corrections' : 'hl-favourites';
+    var walker = document.createTreeWalker(
+      document.getElementById('content'),
+      NodeFilter.SHOW_TEXT, null, false
+    );
+
+    // Gather all text nodes
+    var textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+    // Build full text and find the target substring
+    var fullText = textNodes.map(function(n) {{ return n.nodeValue; }}).join('');
+    var idx = fullText.indexOf(text);
+    if (idx < 0) return;
+
+    // Map character offset to text-node + local offset
+    var charPos = 0;
+    var startNode = null, startOffset = 0, endNode = null, endOffset = 0;
+    for (var i = 0; i < textNodes.length; i++) {{
+      var len = textNodes[i].nodeValue.length;
+      if (!startNode && charPos + len > idx) {{
+        startNode = textNodes[i];
+        startOffset = idx - charPos;
+      }}
+      if (charPos + len >= idx + text.length) {{
+        endNode = textNodes[i];
+        endOffset = idx + text.length - charPos;
+        break;
+      }}
+      charPos += len;
+    }}
+    if (!startNode || !endNode) return;
+
+    var range = document.createRange();
+    range.setStart(startNode, startOffset);
+    range.setEnd(endNode, endOffset);
+
+    var mark = document.createElement('mark');
+    mark.className = cssClass;
+    mark.setAttribute('data-hlid', id);
+    range.surroundContents(mark);
+
+    // Long-press to toggle category
+    var pressTimer = null;
+    mark.addEventListener('pointerdown', function(ev) {{
+      pressTimer = setTimeout(function() {{
+        window.location.href = 'reader://highlight/toggle/' + id;
+      }}, 600);
+    }});
+    mark.addEventListener('pointerup', function() {{ clearTimeout(pressTimer); }});
+    mark.addEventListener('pointerleave', function() {{ clearTimeout(pressTimer); }});
+  }};
 }})();
 </script>
 </body>

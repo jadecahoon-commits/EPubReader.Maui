@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="EPubReader.Maui.HighlightsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    NavigationPage.HasNavigationBar="False">
+
+    <Grid BackgroundColor="{AppThemeBinding Dark=#0f0f0f, Light=#f5f5f5}">
+        <ScrollView Padding="20,24,20,32">
+            <VerticalStackLayout Spacing="24">
+
+                <!--  ── Header ──  -->
+                <Grid ColumnDefinitions="Auto,*">
+                    <Button
+                        Padding="0"
+                        BackgroundColor="Transparent"
+                        BorderWidth="0"
+                        Clicked="Back_Click"
+                        FontSize="16"
+                        HeightRequest="40"
+                        Text="← Back"
+                        TextColor="#E50914"
+                        VerticalOptions="Center"
+                        WidthRequest="80" />
+                    <Label
+                        Grid.Column="1"
+                        FontAttributes="Bold"
+                        FontSize="22"
+                        HorizontalOptions="Center"
+                        Text="Highlights"
+                        TextColor="{AppThemeBinding Dark=White, Light=Black}"
+                        VerticalOptions="Center" />
+                </Grid>
+
+                <!--  ── Filter row ──  -->
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                    <Button
+                        x:Name="FilterAllButton"
+                        Padding="6,4"
+                        BackgroundColor="#E50914"
+                        Clicked="FilterAll_Click"
+                        CornerRadius="16"
+                        FontSize="12"
+                        HeightRequest="34"
+                        Text="All"
+                        TextColor="White" />
+                    <Button
+                        x:Name="FilterFavButton"
+                        Grid.Column="1"
+                        Padding="6,4"
+                        BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e0e0e0}"
+                        Clicked="FilterFavourites_Click"
+                        CornerRadius="16"
+                        FontSize="12"
+                        HeightRequest="34"
+                        Text="Favourites"
+                        TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}" />
+                    <Button
+                        x:Name="FilterCorrButton"
+                        Grid.Column="2"
+                        Padding="6,4"
+                        BackgroundColor="{AppThemeBinding Dark=#2a2a2a, Light=#e0e0e0}"
+                        Clicked="FilterCorrections_Click"
+                        CornerRadius="16"
+                        FontSize="12"
+                        HeightRequest="34"
+                        Text="Corrections"
+                        TextColor="{AppThemeBinding Dark=#bbbbbb, Light=#555555}" />
+                </Grid>
+
+                <!--  ── Highlights list (built in code-behind) ──  -->
+                <VerticalStackLayout x:Name="HighlightsStack" Spacing="12" />
+
+                <!--  ── Empty state ──  -->
+                <Label
+                    x:Name="EmptyLabel"
+                    FontSize="14"
+                    HorizontalOptions="Center"
+                    IsVisible="False"
+                    Text="No highlights yet. Select text while reading to create one."
+                    TextColor="{AppThemeBinding Dark=#888888, Light=#999999}" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
